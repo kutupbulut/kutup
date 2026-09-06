@@ -18,6 +18,25 @@ disagrees with current behavior.
 | Web UI architecture, themes, and responsive rules | [`frontend.md`](frontend.md) |
 | Remaining release work | [`roadmap.md`](roadmap.md) |
 
+## Automation and test routing
+
+| Change | Required GitHub workflow |
+|---|---|
+| Markdown, MDX, or `docs/**` only | `Documentation` |
+| Documentation checker scripts | `Documentation` and complete `CI` |
+| `.github/workflows/**` only | `Workflow validation` |
+| Application code, executable configuration, or a mixed code/docs or code/workflow change | Complete `CI` matrix, plus any matching lightweight workflow |
+| `v*` or `desktop-v*` tag | CLI or desktop release workflow respectively |
+
+The lightweight paths prevent prose-only and workflow-only pull requests from
+spending the Rust, WASM, frontend, PostgreSQL/SeaweedFS, and browser matrix.
+They do not weaken executable checker or mixed changes: touching application
+code still selects the complete CI workflow. Reproduce relevant failures
+locally first; see
+[`contributing.md`](contributing.md) for commands and
+[`../tests/e2e/README.md`](../tests/e2e/README.md) for the zero-retry browser
+gates and sanitized-artifact rules.
+
 ## Current protocol and security references
 
 | Area | Protocol/current state | Threat model or policy |

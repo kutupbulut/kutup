@@ -137,8 +137,9 @@ reproduce locally; do not enable secret-bearing raw artifacts.
 - `fixtures/stack.ts`: destructive fresh-stack fixture for isolated specs.
 - specs 01–30: onboarding, collaboration, office, whiteboard, upload/download,
   admin, sharing, and trash regressions.
-- spec 31: local Chat, linked-device transcripts, Note to Self, and durable
-  IndexedDB reload.
+- spec 31: local Chat, linked-device transcripts, Note to Self, active
+  installation review/rename/revoke, immutable numeric routing IDs, and
+  durable IndexedDB reload.
 - spec 32: two-server Direct/MLS, governance, anonymous media, linked device,
   replay, metadata, and restart security.
 - spec 33: single-server automatic clean-browser Chat backup recovery and

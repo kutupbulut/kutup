@@ -12,7 +12,10 @@ Authenticated desktop and tablet layouts use one persistent application shell:
 
 - **Files** and **Messages** are the primary workspaces.
 - **Shared with me** and **Trash** are subordinate Files views.
-- **Settings** and authorized **Admin** pages use the same shell.
+- **Settings** remains in the workspace shell.
+- Authorized **Admin** routes replace the workspace shell with a dedicated
+  full-height Admin sidebar and top bar. They share theme and account controls,
+  but never stack administrative navigation beside Files/Messages navigation.
 - Editors and viewers use focused chrome so document space is not reduced by
   application navigation.
 
@@ -47,6 +50,8 @@ No runtime font, decorative image, or tracking request is permitted.
 - `components/layout/AuthenticatedShell.tsx` owns the persistent frame.
 - `components/layout/AppSidebar.tsx` owns desktop application navigation.
 - `components/mobile/MobileBottomNav.tsx` owns phone application navigation.
+- `components/admin/AdminSidebar.tsx` and `AdminTopBar.tsx` own the dedicated,
+  role-gated Admin frame.
 - `components/theme/ThemeSelector.tsx` owns explicit theme preference.
 - `components/auth/` owns shared authentication composition.
 - `components/drive/` owns Files presentation; `pages/Drive.tsx` retains data
@@ -76,6 +81,18 @@ state above the branch.
   toggle, placeholder destination, or button that leads to a different action.
 - Preserve established E2E selectors when reshaping behavior-heavy surfaces,
   especially Messages and editors.
+
+## Display and identity contracts
+
+- Files and folders use one Drive surface. Modified timestamps are locale-aware
+  and unambiguous through minutes; a day-and-month-only label is insufficient.
+- Storage usage is a read-only, accessible progress meter with used and total
+  values. It must not look clickable or imply an unavailable quota-purchase
+  action; quota changes belong to authorized Admin settings.
+- Messages presents an editable, account-private installation name as the
+  human identity. The smaller numeric device ID is immutable protocol-routing
+  metadata, not a suggested device name. Renaming changes neither keys,
+  sessions, manifest membership, nor history.
 
 ## Local verification
 
@@ -107,8 +124,9 @@ screenshots or bug reports.
 ### Navigation and responsive state
 
 - [ ] At 1440×900 and 1024×768, Files and Messages are peer workspaces;
-  Shared with me and Trash appear only within Files; Settings and authorized
-  Admin pages keep the application sidebar.
+  Shared with me and Trash appear only within Files; Settings keeps the
+  workspace sidebar; authorized Admin routes use the dedicated Admin shell
+  without a second stacked sidebar.
 - [ ] At 390×844 and 430×932, primary navigation contains exactly Files,
   Messages, and Account. It respects the bottom safe area and never covers a
   row, sheet action, or message composer.
@@ -156,6 +174,9 @@ screenshots or bug reports.
   security and availability states.
 - [ ] Verify Settings, TOTP/devices, authorized Admin actions, version history,
   editor save/sync state, and public-share download behavior.
+- [ ] Confirm Drive modified timestamps identify the date and time through
+  minutes, storage renders as a read-only progress meter, and a Chat
+  installation can be renamed without changing its numeric protocol device ID.
 - [ ] Confirm resizing, opening navigation, changing theme, and restoring a
   page do not themselves send a message, receipt, backup operation, file
   mutation, or eager protected-media request.

@@ -9,7 +9,7 @@ Contributions are welcome. This guide covers local development setup for both th
 | Tool | Version | Install |
 |------|---------|---------|
 | Rust | 1.91.1+ (stable) | https://rustup.rs/ |
-| Node.js | 22 (CI version) | https://nodejs.org/ |
+| Node.js | 22 (project and CI job runtime) | https://nodejs.org/ |
 | pnpm | 10.28.2 (root package and CI) | `corepack enable` |
 | Docker + Compose v2 | latest | https://docs.docker.com/get-docker/ |
 
@@ -101,6 +101,9 @@ cargo clippy --all-targets -- -D warnings       # lints (gate)
 cargo fmt --check                               # formatting (gate)
 python3 scripts/test-check-docs.py               # checker regression tests
 python3 scripts/check-docs.py                    # Markdown links and referenced paths
+docker run --rm -v "$PWD:/repo" -w /repo \
+  rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 \
+  -no-color                                       # GitHub workflow lint
 ./scripts/audit-unified-federation.sh           # no feature-owned federation stack
 ./scripts/test-chat-backup-integration.sh        # real Postgres/SeaweedFS backup lifecycle
 ./scripts/test-chat-federation.sh               # full two-server API + browser security/recovery gate
@@ -135,6 +138,15 @@ Markdown-only and `docs/**`-only pull requests/pushes run the lightweight
 browser matrix. It validates local links, referenced script/workflow/spec paths,
 changed-file whitespace, and Compose parsing. A mixed documentation-and-code
 change still runs the complete `CI` workflow as well as documentation checks.
+
+Changes confined to `.github/workflows/**` run the separate lightweight
+`Workflow validation` workflow. It exercises `actions/checkout@v7`,
+`pnpm/action-setup@v6`, `actions/setup-node@v7`, and
+`actions/upload-artifact@v7` with the project's Node 22 and pnpm 10.28.2, then
+runs the digest-pinned actionlint image. These action majors use the Node 24
+GitHub Actions runtime; that implementation detail does not change the Node 22
+version used to build and test Kutup. Workflow-only changes skip the complete
+CI matrix, while a mixed workflow-and-application change still runs it.
 
 For manual browser testing, use `./scripts/dev-chat-federation-up.sh` instead
 of invoking `docker-compose.chat-federation.yml` directly. The helper starts

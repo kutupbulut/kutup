@@ -33,6 +33,15 @@ Self-hosted by design. One authenticated federation stack carries encrypted Driv
 
 ## Highlights
 
+### One responsive workspace, designed for light and dark
+
+The web client presents Files and Messages as peer workspaces in one responsive
+navigation model rather than separate desktop and mobile products. Shared with
+me and Trash remain Files views; Settings stays in the workspace shell; and the
+role-gated Admin area uses a dedicated shell so administrative navigation never
+stacks beside the Files/Messages sidebar. Light, Dark, and System are explicit
+preferences applied from authentication through editors and public shares.
+
 ### Files & folders that the server can't read
 
 <img src="docs/screenshots/01-drive.png" alt="Drive view" width="800" />
@@ -67,7 +76,13 @@ Every Save creates a versioned snapshot. Open the History sidebar in any editor,
 
 <img src="docs/screenshots/06-settings.png" alt="Settings — devices and presence color" width="800" />
 
-Multi-device with per-device Ed25519 keypairs (revocable individually). 24-word BIP39 recovery phrase that doubles as the second factor for account recovery. Optional TOTP 2FA. A picked presence color follows you across notes and office editors, on every tab.
+Multi-device with per-device Ed25519 keypairs (revocable individually). Each
+Chat installation has an editable account-private name for recognition and a
+small immutable numeric device ID used only for protocol routing; renaming an
+installation does not rotate keys, replace sessions, or move history. A 24-word
+BIP39 recovery phrase doubles as the second factor for account recovery.
+Optional TOTP 2FA. A picked presence color follows you across notes and office
+editors, on every tab.
 
 ### Federated E2EE Chat with continuous recovery
 
@@ -138,7 +153,9 @@ cargo build --release -p kutup-cli   # → target/release/kutup
 install -m755 target/release/kutup ~/.local/bin/kutup
 ```
 
-Tagged release binaries (Linux / macOS / Windows; amd64 + arm64) are published on GitHub Releases (see [`.github/workflows/release.yml`](.github/workflows/release.yml)).
+Tagged release binaries are built for Linux x86-64/ARM64, macOS Intel/Apple
+Silicon, and Windows x86-64 and published on GitHub Releases (see
+[`.github/workflows/release.yml`](.github/workflows/release.yml)).
 
 ### Common workflows
 
@@ -192,7 +209,8 @@ kutup trash empty --yes
 kutup mv <file-id> "new name.txt"
 kutup mv <folder-id> "New folder name" --folder
 
-# Snapshot versions of any file (notes, office, whiteboard).
+# List versions. Restore is currently safe for CLI/sync-created files;
+# live-collaboration snapshots need the web client's derived content-key path.
 kutup versions list <file-id>
 kutup versions restore <file-id> <version-id>
 
@@ -245,7 +263,7 @@ For the full picture (key hierarchy, login flow, federation model, storage layer
 | Chat | libsignal Direct/Note to Self, OpenMLS private groups, IndexedDB state, continuous E2EE history/media backup |
 | Storage | [SeaweedFS](https://github.com/seaweedfs/seaweedfs) (S3-compatible) |
 | Infrastructure | Docker Compose, Nginx (TLS termination + static asset serving) |
-| Testing | Playwright (e2e), `cargo test` (Rust unit + crypto vectors), Vitest (frontend unit) |
+| Testing | Playwright (e2e), `cargo test` (Rust unit + crypto vectors), Vitest (frontend unit), actionlint and repository documentation checks |
 
 ---
 
@@ -260,6 +278,7 @@ For the full picture (key hierarchy, login flow, federation model, storage layer
 | OnlyOffice integration & CryptPad-pinned bundle | [docs/onlyoffice.md](docs/onlyoffice.md) |
 | REST API reference | [docs/api.md](docs/api.md) |
 | Local dev setup, code conventions, project structure | [docs/contributing.md](docs/contributing.md) |
+| Local-first testing and CI workflow routing | [docs/contributing.md](docs/contributing.md), [tests/e2e/README.md](tests/e2e/README.md) |
 | Web UI architecture, theme system, and responsive rules | [docs/frontend.md](docs/frontend.md) |
 | Documentation map and document-status conventions | [docs/README.md](docs/README.md) |
 | Machine-readable OpenAPI document | `/api-docs/openapi.json` on a running stack (interactive Swagger UI is not bundled) |

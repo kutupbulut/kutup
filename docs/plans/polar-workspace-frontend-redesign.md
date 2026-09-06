@@ -1,12 +1,12 @@
 # Polar Workspace frontend redesign and responsive web plan
 
-**Status:** implementation and the complete local automated release gate are
-green; the final manual visual/interaction review is available on the local
-Docker preview
+**Status:** complete and merged to `master`; local, required GitHub, and manual
+acceptance gates passed
 
 **Written:** 2026-08-20
 
-**Branch:** `feat/polar-workspace-redesign`
+**Delivery:** implemented on the historical `feat/polar-workspace-redesign`
+branch and landed as `a0592f0`; the device-label follow-up landed as `07c09e0`
 
 **Scope:** authenticated web application shell, authentication and recovery
 screens, Drive presentation, Messages presentation, Settings, Admin, focused
@@ -16,9 +16,10 @@ editor chrome, light/dark theming, and responsive mobile web behavior
 mobile application readiness, a new dashboard, device transfer, and public
 backup export
 
-## Implementation checkpoint — 2026-08-21
+## Completion record — 2026-09-06
 
-Implemented on `feat/polar-workspace-redesign`. The redesign preserves public
+Implemented on `feat/polar-workspace-redesign` and merged to `master`. The
+redesign preserves public
 backend and cryptographic wire contracts. Real-browser coverage also exposed
 three compatibility defects, fixed with regression coverage: same-server
 named shares no longer depend on optional federation state; identified local
@@ -55,7 +56,7 @@ independent backup mutation chains deterministically.
 - an automated zero-retry Playwright responsive/axe gate plus current frontend
   architecture and contributor documentation.
 
-Current local evidence:
+Completion evidence:
 
 - TypeScript typecheck passes;
 - the final production Docker frontend image builds successfully with the
@@ -67,7 +68,8 @@ Current local evidence:
   by the shell total about 54 KiB (Manrope 24.83 KiB and Source Sans 3
   28.74 KiB), while IBM Plex Mono and non-Latin unicode ranges are selected by
   use and remain below the 250 KiB font budget;
-- the complete frontend Vitest run passes: 77 files and 407 tests;
+- the complete frontend Vitest run passes: 77 files and 408 tests after the
+  device-label regression coverage;
 - the root Rust workspace passes, and the standalone Chat core passes all 77
   unit/integration cases including its 256-account/2,560-device MLS scale gate;
 - Rust/WASM builds, canonical crypto WASM vectors, and every parser fuzz target
@@ -94,13 +96,17 @@ Current local evidence:
   were reviewed locally; recovery phrases and real account data were excluded;
 - documentation links, Compose S3 credential wiring, `git diff --check`,
   locale JSON parsing, and the authored-source `.ts`/`.tsx` policy pass; and
-- the rebuilt Docker preview is healthy at `https://localhost:40443/`; and
-- GitHub Actions has not been triggered for this branch work.
+- the rebuilt Docker preview was healthy at `https://localhost:40443/` for the
+  final manual review; and
+- required GitHub Actions
+  [run 34040616831](https://github.com/kutupbt/kutup/actions/runs/34040616831)
+  passed all seven jobs, including clean-browser single-server recovery and
+  the complete two-server browser recovery gate.
 
-All automated release gates are complete. Final human visual/interaction
-review, including the revised storage meter and dedicated Admin sidebar, can
-be completed against the local Docker preview. GitHub Actions has not been
-used.
+All automated release gates and the final human visual/interaction review are
+complete. The accepted follow-up state includes the dedicated Admin shell, a
+read-only storage meter, Drive timestamps precise through minutes, and
+editable Chat installation labels with immutable numeric routing IDs.
 
 **Primary design references:**
 

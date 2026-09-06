@@ -56,8 +56,10 @@ The following are release blockers:
   epochs;
 - an administrator-controlled 1–10 active-device limit (default and hard cap
   10), enforced identically by every Chat and identity path;
-- Signal-class web-device continuity: **active-installation review, safe
-  revocation, and always-on account-local E2EE Chat backup are implemented.**
+- Signal-class web-device continuity: **active-installation review, editable
+  account-private installation labels, safe revocation, and always-on
+  account-local E2EE Chat backup are implemented.** Numeric device IDs remain
+  immutable protocol-routing metadata.
   Every durable display mutation enters a crash-safe encrypted outbox; the
   homeserver stores an opaque signed base-plus-tail restore point and separately
   encrypted media under an administrator-controlled Chat quota. A recovered

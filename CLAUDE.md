@@ -43,8 +43,15 @@ End-to-end encrypted, self-hosted Drive, real-time collaboration, and federated 
   `docs/chat-native-bindings.md`; generate Swift/Kotlin sources with
   `scripts/generate-native-bindings.sh`.
 - **CLI:** `cargo run -p kutup-cli -- …` (or `cargo build --release -p kutup-cli` → `target/release/kutup`). Unlike the old Go CLI, the Rust CLI has a `register` subcommand (creates an account end-to-end, client-side crypto + a printed 24-word recovery phrase) and reads `KUTUP_PASSWORD` for non-interactive login/register.
-- **Releases are tag-triggered** (CI on `master`): `v*` → CLI built for Linux/macOS/Windows (amd64+arm64) via a cargo matrix (`.github/workflows/release.yml`, using `taiki-e/upload-rust-binary-action`); `desktop-v*` → desktop installers (`.deb`/`.rpm`/`.AppImage`/`.dmg`/`.msi`) via `tauri-action`, drafting a GitHub Release (`.github/workflows/release-desktop.yml`). A `-alpha.N` / `-beta.N` / `-rc.N` segment ⇒ the release is flagged "Pre-release". Builds are currently **unsigned**.
+- **Releases are tag-triggered** (CI on `master`): `v*` → CLI built for Linux x86-64/ARM64, macOS Intel/Apple Silicon, and Windows x86-64 via a cargo matrix (`.github/workflows/release.yml`, using `taiki-e/upload-rust-binary-action`); `desktop-v*` → desktop installers (`.deb`/`.rpm`/`.AppImage`/`.dmg`/`.msi`) via `tauri-action`, drafting a GitHub Release (`.github/workflows/release-desktop.yml`). A `-alpha.N` / `-beta.N` / `-rc.N` segment ⇒ the release is flagged "Pre-release". Builds are currently **unsigned**.
 - **e2e / Playwright repros** run against the running dev stack at `https://localhost:38443`. The frontend container **bakes `dist/`**, so a bare local frontend build is not visible until the image is rebuilt. Reproduce required gates locally before spending GitHub CI: `scripts/test-chat-backup-integration.sh` for real Postgres/SeaweedFS lifecycle and `scripts/test-chat-federation.sh` for the complete two-server API/browser gate. Playwright retries remain zero; sensitive Chat/backup runs use the sanitized-artifact mode documented in `tests/e2e/README.md`.
+- **Workflow changes:** project jobs use Node 22, while the checked-in
+  `checkout@v7`, `setup-node@v7`, `pnpm/action-setup@v6`, and
+  `upload-artifact@v7` actions run on GitHub's Node 24 action runtime.
+  Workflow-only changes select the cheap `Workflow validation` gate; docs-only
+  changes select `Documentation`; mixed application changes still run full
+  `CI`. Lint workflow edits locally with the actionlint command in
+  `docs/contributing.md` before using GitHub minutes.
 
 ## Conventions & non-obvious context
 

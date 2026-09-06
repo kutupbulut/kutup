@@ -88,3 +88,27 @@ code-and-documentation changes continue to run the complete matrix.
 No application test suite is required for prose-only changes; executable
 configuration validation and documentation consistency checks are the relevant
 gates.
+
+## Follow-up current-state refresh — 2026-09-06
+
+A repository-wide follow-up audited all 97 tracked Markdown/MDX files against
+the changes landed after the original audit. Generated and third-party legal or
+attribution documents were inspected for scope but not editorially rewritten.
+Historical research and implementation records remain historical unless they
+incorrectly presented themselves as current work.
+
+The refresh corrected the current web-shell contract (Settings remains in the
+workspace shell; Admin uses its own non-stacking shell), recorded the accepted
+storage meter and minute-precise Drive dates, and documented editable
+account-private Chat installation labels separately from immutable numeric
+protocol IDs. It also marked the Polar Workspace plan complete with its local,
+manual, and required GitHub evidence; corrected the CLI release matrix and the
+CLI limitation for restoring live-collaboration snapshots; and documented the
+Node 24 GitHub Action majors plus the lightweight documentation/workflow CI
+routing. Native iOS and Android applications remain explicitly work in
+progress and not release-ready.
+
+This follow-up is documentation-only. The relevant verification is the checker
+regression suite, repository-local Markdown/path validation, stale-claim
+searches, and `git diff --check`; it does not rerun application or browser
+tests whose behavior was not changed.
