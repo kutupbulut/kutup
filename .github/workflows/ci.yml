@@ -6,6 +6,7 @@ on:
       - "**/*.md"
       - "**/*.mdx"
       - "docs/**"
+      - ".github/workflows/**"
   push:
     branches:
       - master
@@ -13,6 +14,7 @@ on:
       - "**/*.md"
       - "**/*.mdx"
       - "docs/**"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
@@ -33,7 +35,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify Compose S3 credential wiring
         run: python3 scripts/test-compose-s3-credentials.py
       - name: Install protobuf compiler
@@ -61,7 +63,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Set up Rust
@@ -77,7 +79,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Set up Rust
@@ -94,7 +96,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Set up Rust and WASM target
@@ -108,11 +110,11 @@ jobs:
       - name: Install wasm-bindgen CLI
         run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10.28.2
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -133,7 +135,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Set up Rust
@@ -159,9 +161,9 @@ jobs:
       JWT_SECRET: chat-backup-ci-jwt-secret-at-least-32-bytes
       APP_ENV: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -196,7 +198,7 @@ jobs:
         run: docker compose down --volumes --remove-orphans
       - name: Upload clean-browser failure artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chat-backup-browser-results
           if-no-files-found: ignore
@@ -217,7 +219,7 @@ jobs:
       KUTUP_E2E_SAFE_ARTIFACTS: "1"
       KUTUP_E2E_DIAGNOSTICS_DIR: sanitized-results
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install protobuf compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Set up Rust
@@ -226,7 +228,7 @@ jobs:
         with:
           shared-key: security-e2e-host
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -241,7 +243,7 @@ jobs:
         run: scripts/test-chat-federation.sh
       - name: Upload browser failure artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chat-security-playwright-results
           if-no-files-found: ignore
