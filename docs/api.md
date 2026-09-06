@@ -891,6 +891,15 @@ Register the calling client as a chat device. The server assigns the lowest free
 
 The caller's chat devices: `{ "devices": [{ "deviceId", "suite", "name", "createdAt", "lastSeenAt" }] }`.
 
+### PATCH /api/chat/device/{deviceId}
+
+Rename one of the caller's registered Chat installations. The body is
+`{ "name": "Work laptop" }`; names are trimmed, required, limited to 64 Unicode
+characters, and cannot contain control characters. This changes only
+account-private display metadata—the numeric device ID, encryption keys,
+sessions, signed device manifest, and protected history remain unchanged.
+`204`.
+
 ### DELETE /api/chat/device/{deviceId}
 
 Revoke a chat device — hard delete; prekey pools and mailbox rows are removed,

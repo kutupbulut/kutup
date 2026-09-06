@@ -606,6 +606,16 @@ pub struct RegisterChatDeviceResponse {
     pub device_id: u32,
 }
 
+/// `PATCH /api/chat/device/{deviceId}` — change the human-readable label for
+/// one of the caller's registered Chat installations. This does not alter the
+/// device id, keys, sessions, or signed account manifest.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct RenameChatDeviceRequest {
+    pub name: String,
+}
+
 /// `PUT /api/chat/keys` — rotate the signed prekey and/or replenish one-time pools.
 /// Only the fields present are changed.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

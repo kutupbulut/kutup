@@ -126,6 +126,7 @@ All file content and metadata are encrypted client-side; the server stores only 
         // --- chat (E2EE messaging — phase 2 of docs/research/11-federated-chat.md) ---
         crate::handlers::chat::register_device,
         crate::handlers::chat::list_devices,
+        crate::handlers::chat::rename_device,
         crate::handlers::chat::revoke_device,
         crate::handlers::chat::publish_manifest,
         crate::handlers::chat::get_user_manifest,
@@ -165,6 +166,7 @@ All file content and metadata are encrypted client-side; the server stores only 
         kutup_chat_proto::KemPreKey,
         kutup_chat_proto::RegisterChatDeviceRequest,
         kutup_chat_proto::RegisterChatDeviceResponse,
+        kutup_chat_proto::RenameChatDeviceRequest,
         kutup_chat_proto::ReplenishKeysRequest,
         kutup_chat_proto::PreKeyCountResponse,
         kutup_chat_proto::AccountIdentitySuiteId,

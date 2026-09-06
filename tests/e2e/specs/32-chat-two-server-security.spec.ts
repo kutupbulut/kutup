@@ -79,7 +79,11 @@ async function openChat(page: Page): Promise<void> {
   })
   await page.goto('/chat')
   await expect(page.getByRole('heading', { name: 'Messages' })).toBeVisible({ timeout: 90_000 })
-  await expect(page.getByTestId('chat-device-status')).toHaveText(/Device \d+/, { timeout: 90_000 })
+  await expect(page.getByTestId('chat-device-status')).toHaveAttribute(
+    'data-device-id',
+    /^\d+$/,
+    { timeout: 90_000 },
+  )
   const headerLayout = await page.evaluate(() => {
     const header = document.querySelector<HTMLElement>('[data-testid="chat-sidebar-header"]')
     const title = document.querySelector<HTMLElement>('[data-testid="chat-sidebar-title"]')

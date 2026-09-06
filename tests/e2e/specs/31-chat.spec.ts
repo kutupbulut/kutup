@@ -95,9 +95,11 @@ async function openChat(page: Page): Promise<void> {
   await page.goto('/chat')
   await expect(page.getByRole('heading', { name: 'Messages' })).toBeVisible({ timeout: 60_000 })
   try {
-    await expect(page.getByTestId('chat-device-status')).toHaveText(/Device \d+/, {
-      timeout: 60_000,
-    })
+    await expect(page.getByTestId('chat-device-status')).toHaveAttribute(
+      'data-device-id',
+      /^\d+$/,
+      { timeout: 60_000 },
+    )
     await expect(page.getByRole('button', { name: 'Sync messages' })).toBeEnabled({
       timeout: 60_000,
     })
@@ -221,6 +223,25 @@ test.describe('Signal-backed chat', () => {
     await openChat(pageA)
     await openChat(pageB)
 
+    // Device labels are account-private metadata. Renaming the current
+    // installation must update both management and the Messages header while
+    // retaining the immutable numeric protocol id.
+    const pageADeviceId = await pageA
+      .getByTestId('chat-device-status')
+      .getAttribute('data-device-id')
+    expect(pageADeviceId).toMatch(/^\d+$/)
+    await pageA.getByTestId('chat-devices-button').click()
+    await pageA.getByTestId(`chat-device-rename-${pageADeviceId}`).click()
+    await pageA.getByTestId(`chat-device-name-input-${pageADeviceId}`).fill('Alice laptop')
+    await pageA.getByTestId(`chat-device-name-save-${pageADeviceId}`).click()
+    await expect(pageA.getByTestId(`chat-device-${pageADeviceId}`)).toContainText('Alice laptop')
+    await pageA.keyboard.press('Escape')
+    await expect(pageA.getByTestId('chat-device-status')).toHaveText('Alice laptop')
+    await expect(pageA.getByTestId('chat-device-status')).toHaveAttribute(
+      'data-device-id',
+      pageADeviceId ?? '',
+    )
+
     // A second install of Alice extends the signed device manifest. Note to
     // Self is stored locally on the sender and arrives on this linked install
     // as outgoing history via an encrypted sent transcript.
@@ -278,8 +299,13 @@ test.describe('Signal-backed chat', () => {
       }
     })
     await openChat(pageA2)
-    const firstDevice = await pageA.getByTestId('chat-device-status').textContent()
-    await expect(pageA2.getByTestId('chat-device-status')).not.toHaveText(firstDevice ?? '')
+    const firstDevice = await pageA
+      .getByTestId('chat-device-status')
+      .getAttribute('data-device-id')
+    await expect(pageA2.getByTestId('chat-device-status')).not.toHaveAttribute(
+      'data-device-id',
+      firstDevice ?? '',
+    )
 
     // Reopen the already-running source after the linked install has committed
     // its signed manifest entry. The source then pins that exact generation

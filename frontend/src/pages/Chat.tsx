@@ -277,6 +277,9 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
   const [devices, setDevices] = useState<ChatDevice[]>([])
   const [devicesLoading, setDevicesLoading] = useState(false)
   const [deviceRevoking, setDeviceRevoking] = useState<number | null>(null)
+  const [deviceEditing, setDeviceEditing] = useState<number | null>(null)
+  const [deviceNameDraft, setDeviceNameDraft] = useState('')
+  const [deviceRenameSaving, setDeviceRenameSaving] = useState(false)
   const [backupStatus, setBackupStatus] = useState<ChatBackupView | null>(null)
   const [mediaStorageOpen, setMediaStorageOpen] = useState(false)
   const [mediaStorage, setMediaStorage] = useState<ChatMediaStorageView | null>(null)
@@ -965,9 +968,12 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
   }, [contacts.length, history.length, noteSelected, selectedAddress, service])
 
   useEffect(() => {
-    if (!devicesOpen || !service) return
+    if (!service) {
+      setDevices([])
+      return
+    }
     let cancelled = false
-    setDevicesLoading(true)
+    if (devicesOpen) setDevicesLoading(true)
     const load = (showError: boolean) => {
       void service.devices()
         .then((nextDevices) => {
@@ -983,11 +989,13 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
           if (!cancelled) setDevicesLoading(false)
         })
     }
-    load(true)
-    const polling = window.setInterval(() => load(false), 3_000)
+    load(devicesOpen)
+    const polling = devicesOpen
+      ? window.setInterval(() => load(false), 3_000)
+      : null
     return () => {
       cancelled = true
-      window.clearInterval(polling)
+      if (polling !== null) window.clearInterval(polling)
     }
   }, [devicesOpen, service, t])
 
@@ -1020,6 +1028,38 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
       toast.error(errorMessage(cause, t))
     } finally {
       setDeviceRevoking(null)
+    }
+  }
+
+  function beginDeviceRename(device: ChatDevice) {
+    setDeviceEditing(device.deviceId)
+    setDeviceNameDraft(device.name || t('chat.device', { device: device.deviceId }))
+  }
+
+  function cancelDeviceRename() {
+    if (deviceRenameSaving) return
+    setDeviceEditing(null)
+    setDeviceNameDraft('')
+  }
+
+  async function renameChatDevice(event: FormEvent, device: ChatDevice) {
+    event.preventDefault()
+    if (!service) return
+    const name = deviceNameDraft.trim()
+    if (!name) {
+      toast.error(t('chat.devices.nameRequired'))
+      return
+    }
+    setDeviceRenameSaving(true)
+    try {
+      setDevices(await service.renameDevice(device.deviceId, name))
+      setDeviceEditing(null)
+      setDeviceNameDraft('')
+      toast.success(t('chat.devices.renamed'))
+    } catch (cause) {
+      toast.error(errorMessage(cause, t))
+    } finally {
+      setDeviceRenameSaving(false)
     }
   }
 
@@ -1710,6 +1750,9 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
   }
 
   const showPeerList = !isMobile || !selectedConversation
+  const currentChatDevice = devices.find(device => device.deviceId === service?.deviceId)
+  const currentChatDeviceName = currentChatDevice?.name.trim()
+    || t('chat.device', { device: service?.deviceId ?? '…' })
 
   const resetThisBrowserChatDevice = () => {
     if (!auth.userId || deviceResetting) return
@@ -1751,8 +1794,10 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
               <p
                 className="truncate text-xs text-muted-foreground"
                 data-testid="chat-device-status"
+                data-device-id={service?.deviceId}
+                title={currentChatDeviceName}
               >
-                {t('chat.device', { device: service?.deviceId ?? '…' })}
+                {currentChatDeviceName}
               </p>
             </div>
             <Dialog open={devicesOpen} onOpenChange={setDevicesOpen}>
@@ -1815,17 +1860,61 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
                         >
                           <MonitorSmartphone className="h-5 w-5 shrink-0 text-muted-foreground" />
                           <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="truncate text-sm font-medium">
-                                {device.name || t('chat.device', { device: device.deviceId })}
-                              </span>
-                              {current && (
-                                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                                  {t('chat.devices.current')}
+                            {deviceEditing === device.deviceId ? (
+                              <form
+                                className="flex items-center gap-2"
+                                onSubmit={event => void renameChatDevice(event, device)}
+                              >
+                                <Input
+                                  autoFocus
+                                  required
+                                  maxLength={64}
+                                  value={deviceNameDraft}
+                                  onChange={event => setDeviceNameDraft(event.target.value)}
+                                  aria-label={t('chat.devices.name')}
+                                  className="h-8"
+                                  data-testid={`chat-device-name-input-${device.deviceId}`}
+                                />
+                                <Button
+                                  type="submit"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0"
+                                  disabled={deviceRenameSaving || !deviceNameDraft.trim()}
+                                  aria-label={t('common.save')}
+                                  data-testid={`chat-device-name-save-${device.deviceId}`}
+                                >
+                                  {deviceRenameSaving
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <Check className="h-4 w-4" />}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0"
+                                  disabled={deviceRenameSaving}
+                                  onClick={cancelDeviceRename}
+                                  aria-label={t('common.cancel')}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </form>
+                            ) : (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="truncate text-sm font-medium">
+                                  {device.name || t('chat.device', { device: device.deviceId })}
                                 </span>
-                              )}
-                            </div>
+                                {current && (
+                                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                                    {t('chat.devices.current')}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                             <p className="mt-1 text-xs text-muted-foreground">
+                              {t('chat.devices.id', { device: device.deviceId })}
+                              {' · '}
                               {t('chat.devices.created', { time: formatDeviceTime(device.createdAt) })}
                               {' · '}
                               {lastSeen
@@ -1833,12 +1922,26 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
                                 : t('chat.devices.neverSeen')}
                             </p>
                           </div>
-                          {!current && (
+                          {deviceEditing !== device.deviceId && (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0"
+                              disabled={deviceRevoking !== null || deviceRenameSaving}
+                              onClick={() => beginDeviceRename(device)}
+                              aria-label={t('chat.devices.rename')}
+                              data-testid={`chat-device-rename-${device.deviceId}`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {!current && deviceEditing !== device.deviceId && (
                             <Button
                               type="button"
                               size="sm"
                               variant="outline"
-                              disabled={deviceRevoking !== null}
+                              disabled={deviceRevoking !== null || deviceRenameSaving}
                               onClick={() => void revokeChatDevice(device)}
                               data-testid={`chat-device-revoke-${device.deviceId}`}
                             >

@@ -7,7 +7,7 @@ import { ApiChatTransport } from './transport'
 afterEach(() => vi.restoreAllMocks())
 
 describe('ApiChatTransport', () => {
-  it('lists and revokes authenticated Chat devices', async () => {
+  it('lists, renames, and revokes authenticated Chat devices', async () => {
     const devices = [{
       deviceId: 2,
       suite: 1,
@@ -16,11 +16,14 @@ describe('ApiChatTransport', () => {
       lastSeenAt: null,
     }]
     const get = vi.spyOn(api, 'get').mockResolvedValue({ data: { devices } } as never)
+    const patch = vi.spyOn(api, 'patch').mockResolvedValue({ data: undefined } as never)
     const remove = vi.spyOn(api, 'delete').mockResolvedValue({ data: undefined } as never)
     const transport = new ApiChatTransport()
 
     await expect(transport.listDevices()).resolves.toEqual(devices)
     expect(get).toHaveBeenCalledWith('/chat/device')
+    await expect(transport.renameDevice(2, 'Work laptop')).resolves.toBeUndefined()
+    expect(patch).toHaveBeenCalledWith('/chat/device/2', { name: 'Work laptop' })
     await expect(transport.revokeDevice(2)).resolves.toBeUndefined()
     expect(remove).toHaveBeenCalledWith('/chat/device/2')
   })

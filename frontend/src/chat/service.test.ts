@@ -102,6 +102,33 @@ describe('ChatService MLS workflow coordination', () => {
     expect(transport.revokeDevice).not.toHaveBeenCalled()
   })
 
+  it('renames any registered device without changing cryptographic state', async () => {
+    const renamedDevices = [{
+      deviceId: 2,
+      suite: 1,
+      name: 'Work laptop',
+      createdAt: '2026-08-09T10:00:00Z',
+      lastSeenAt: null,
+    }]
+    const transport = {
+      renameDevice: vi.fn(),
+      listDevices: vi.fn(async () => renamedDevices),
+    }
+    const channel = { postMessage: vi.fn() }
+    const service = Object.create(ChatService.prototype) as ChatService
+    Object.assign(service, {
+      deviceId: 2,
+      transport,
+      channel,
+      listeners: new Set(),
+    })
+
+    await expect(service.renameDevice(2, 'Work laptop')).resolves.toEqual(renamedDevices)
+    expect(transport.renameDevice).toHaveBeenCalledWith(2, 'Work laptop')
+    expect(transport.listDevices).toHaveBeenCalledOnce()
+    expect(channel.postMessage).toHaveBeenCalledWith({ type: 'updated' })
+  })
+
   it('keeps a Direct Chat reply target inside the WASM content call', async () => {
     installQueuedWebLocks()
     const sendId = '22222222-2222-4222-8222-222222222222'

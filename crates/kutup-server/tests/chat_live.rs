@@ -348,6 +348,36 @@ fn register_chat_device(c: &Client, base: &str, token: &str) -> (u32, u32, Strin
         .expect("registered device is listed");
     assert_eq!(listed["suite"], json!(1));
 
+    let invalid_name = c
+        .patch(format!("{base}/api/chat/device/{device_id}"))
+        .bearer_auth(token)
+        .json(&json!({ "name": "   " }))
+        .send()
+        .unwrap();
+    assert_eq!(invalid_name.status(), StatusCode::BAD_REQUEST);
+
+    let renamed = c
+        .patch(format!("{base}/api/chat/device/{device_id}"))
+        .bearer_auth(token)
+        .json(&json!({ "name": "  Live test laptop  " }))
+        .send()
+        .unwrap();
+    assert_eq!(renamed.status(), StatusCode::NO_CONTENT);
+    let devices: Value = c
+        .get(format!("{base}/api/chat/device"))
+        .bearer_auth(token)
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    let renamed_device = devices["devices"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|device| device["deviceId"] == device_id)
+        .expect("renamed device is listed");
+    assert_eq!(renamed_device["name"], "Live test laptop");
+
     (device_id, reg_id, identity_key)
 }
 

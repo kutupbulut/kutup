@@ -495,7 +495,10 @@ fn build_router(state: AppState) -> Router {
             "/api/chat/device",
             post(chat::register_device).get(chat::list_devices),
         )
-        .route("/api/chat/device/:deviceId", delete(chat::revoke_device))
+        .route(
+            "/api/chat/device/:deviceId",
+            patch(chat::rename_device).delete(chat::revoke_device),
+        )
         .route(
             "/api/chat/backup",
             post(handlers::chat_backup::provision)

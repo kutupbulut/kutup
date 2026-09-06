@@ -292,6 +292,12 @@ export class ChatService {
     return this.transport.listDevices()
   }
 
+  async renameDevice(deviceId: number, name: string): Promise<ChatDevice[]> {
+    await this.transport.renameDevice(deviceId, name)
+    this.notifyPeers()
+    return this.devices()
+  }
+
   async revokeDevice(deviceId: number): Promise<ChatDevice[]> {
     if (deviceId === this.deviceId) {
       throw new Error('the current Chat device cannot revoke itself')

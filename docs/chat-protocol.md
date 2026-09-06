@@ -162,6 +162,7 @@ Relevant routes:
 | Route | Meaning |
 |---|---|
 | `POST /api/chat/device` | restart-safe device registration |
+| `PATCH /api/chat/device/{deviceId}` | rename the account-private device label without changing its identity |
 | `DELETE /api/chat/device/{deviceId}` | revoke one device |
 | `POST/GET /api/chat/backup` | provision or inspect the encrypted history archive |
 | `POST/GET /api/chat/backup/segments` | append or restore ordered encrypted event segments |

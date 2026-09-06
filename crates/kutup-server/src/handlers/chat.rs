@@ -35,8 +35,9 @@ use kutup_chat_proto::{
     EnvelopeType, KemPreKey, MailboxPage, OutgoingEnvelope, OwnChatProfileResponse,
     PreKeyCountResponse, ProfileEnvelopeContextV1, ProfileEnvelopePurpose, ProfileSuiteId,
     PutChatProfileRequest, RegisterChatDeviceRequest, RegisterChatDeviceResponse,
-    ReplenishKeysRequest, SealedDeliveryResponseV1, SealedMessageSubmissionV1,
-    SealedOutgoingEnvelopeV1, SendMessagesRequest, UserPreKeyBundlesResponse,
+    RenameChatDeviceRequest, ReplenishKeysRequest, SealedDeliveryResponseV1,
+    SealedMessageSubmissionV1, SealedOutgoingEnvelopeV1, SendMessagesRequest,
+    UserPreKeyBundlesResponse,
 };
 
 use crate::chat_hub::ChatWsOut;
@@ -49,6 +50,8 @@ use crate::{jwt, ratelimit, AppState};
 const MAX_REGISTRATION_ID: u32 = 16380;
 /// libsignal `DeviceId` fits in 7 bits on the wire.
 const MAX_DEVICE_ID: i32 = 127;
+/// Human-readable device labels are UI metadata, not cryptographic identity.
+const MAX_DEVICE_NAME_CHARS: usize = 64;
 /// Mailbox drain page cap.
 const MAX_DRAIN_LIMIT: i64 = 500;
 
@@ -65,6 +68,24 @@ fn direct_chat_suite_from_db(value: i16, source: &'static str) -> AppResult<Dire
             "unknown direct chat suite {value} stored in {source}"
         ))
     })
+}
+
+fn normalized_device_name(value: &str) -> AppResult<String> {
+    let name = value.trim();
+    if name.is_empty() {
+        return Err(AppError::bad_request("device name is required"));
+    }
+    if name.chars().count() > MAX_DEVICE_NAME_CHARS {
+        return Err(AppError::bad_request(
+            "device name must be 64 characters or fewer",
+        ));
+    }
+    if name.chars().any(char::is_control) {
+        return Err(AppError::bad_request(
+            "device name cannot contain control characters",
+        ));
+    }
+    Ok(name.to_owned())
 }
 
 fn profile_suite_from_db(value: i16, source: &'static str) -> AppResult<ProfileSuiteId> {
@@ -1198,6 +1219,47 @@ pub async fn list_devices(State(state): State<AppState>, auth: AuthUser) -> AppR
         })
         .collect::<AppResult<_>>()?;
     Ok(Json(json!({ "devices": devices })).into_response())
+}
+
+/// `PATCH /api/chat/device/{deviceId}` — rename one of the caller's Chat
+/// installations. The label is account-private metadata and has no effect on
+/// the installation's cryptographic identity.
+#[utoipa::path(
+    patch,
+    path = "/api/chat/device/{deviceId}",
+    tag = "chat",
+    operation_id = "renameChatDevice",
+    params(("deviceId" = u32, Path, description = "Chat device id")),
+    request_body = RenameChatDeviceRequest,
+    responses(
+        (status = 204, description = "Renamed"),
+        (status = 400, description = "Invalid device name"),
+        (status = 404, description = "No such device"),
+    ),
+    security(("bearerAuth" = []))
+)]
+pub async fn rename_device(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    Path(device_id): Path<i32>,
+    Json(req): Json<RenameChatDeviceRequest>,
+) -> AppResult<Response> {
+    let user_id = trusted_uuid(&auth.user_id)?;
+    let name = normalized_device_name(&req.name)?;
+    let updated = sqlx::query(
+        "UPDATE chat_devices SET name = $3
+         WHERE user_id = $1 AND device_id = $2",
+    )
+    .bind(user_id)
+    .bind(device_id)
+    .bind(name)
+    .execute(&state.pool)
+    .await?
+    .rows_affected();
+    if updated == 0 {
+        return Err(AppError::not_found("no such chat device"));
+    }
+    Ok(StatusCode::NO_CONTENT.into_response())
 }
 
 /// `DELETE /api/chat/device/{deviceId}` — revoke a chat device. Hard-deletes the
@@ -2703,6 +2765,28 @@ mod tests {
             assert!(error.message.contains(&value.to_string()));
             assert!(error.message.contains("test"));
         }
+    }
+
+    #[test]
+    fn device_names_are_trimmed_and_strictly_bounded() {
+        assert_eq!(
+            normalized_device_name("  Work laptop  ").unwrap(),
+            "Work laptop"
+        );
+
+        for invalid in ["", "   ", "line\nbreak"] {
+            assert_eq!(
+                normalized_device_name(invalid).unwrap_err().status,
+                StatusCode::BAD_REQUEST
+            );
+        }
+        assert_eq!(
+            normalized_device_name(&"a".repeat(MAX_DEVICE_NAME_CHARS + 1))
+                .unwrap_err()
+                .status,
+            StatusCode::BAD_REQUEST
+        );
+        assert!(normalized_device_name(&"ü".repeat(MAX_DEVICE_NAME_CHARS)).is_ok());
     }
 
     #[test]

@@ -25,6 +25,10 @@ export class ApiChatTransport implements ChatTransportPort {
     await api.delete(`/chat/device/${deviceId}`)
   }
 
+  async renameDevice(deviceId: number, name: string): Promise<void> {
+    await api.patch(`/chat/device/${deviceId}`, { name })
+  }
+
   async registerDevice(request: unknown): Promise<unknown> {
     return api.post('/chat/device', request).then((response) => response.data)
   }
