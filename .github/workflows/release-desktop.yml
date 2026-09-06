@@ -67,7 +67,7 @@ jobs:
       RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Tag desktop-v0.1.0          -> APP_VERSION=0.1.0,         IS_PRERELEASE=false
       # Tag desktop-v0.1.0-alpha.1  -> APP_VERSION=0.1.0-alpha.1, IS_PRERELEASE=true
@@ -116,11 +116,11 @@ jobs:
             file
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         # version is taken from the "packageManager" field in package.json
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -166,7 +166,7 @@ jobs:
 
       - name: Upload bundles as workflow artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kutup-desktop-${{ matrix.platform }}
           if-no-files-found: ignore
