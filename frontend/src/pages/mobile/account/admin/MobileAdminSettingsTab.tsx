@@ -22,10 +22,8 @@ function validRetentionDays(value: string): boolean {
  *   Registration
  *     ▢ Public registration   [switch]
  *
- * The design's other groups (Defaults / Security / Storage backend /
- * Danger zone) need backend additions before we can ship them — see the
- * PR 12 section of the plan file for the full list. They're explicitly
- * NOT rendered here so the page doesn't lie about what the backend can do.
+ * Other potential groups (Defaults / Security / Storage backend / Danger
+ * zone) require backend support and are intentionally not rendered.
  */
 export function MobileAdminSettingsTab() {
   const { t } = useTranslation()

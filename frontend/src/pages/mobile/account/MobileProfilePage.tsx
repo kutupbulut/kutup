@@ -8,8 +8,8 @@ import { useAppSelector } from '@/store'
  * MobileProfilePage — `/drive/account/profile`.
  *
  * Read-only summary of the authenticated user: avatar circle, email,
- * username, plan badge. Editing identity fields lives downstream (account-
- * service work is out of scope for PR 2); for now the page is informational.
+ * username, and account role. Identity fields are managed by the account
+ * service, so this page is intentionally informational.
  */
 export default function MobileProfilePage() {
   const { t } = useTranslation()

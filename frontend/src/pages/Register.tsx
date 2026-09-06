@@ -9,7 +9,7 @@ import zxcvbn from 'zxcvbn'
 import api from '@/api/client'
 import type { RegistrationKeys } from '@/crypto'
 import { generateRegistrationInWorker } from '@/crypto/accountProtectionWorker'
-import { KutupLogo } from '@/components/KutupLogo'
+import { AuthLayout } from '@/components/auth/AuthLayout'
 import MnemonicDisplay from '@/components/MnemonicDisplay'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,9 +25,9 @@ import {
   FormDescription,
 } from '@/components/ui/form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
-const STRENGTH_COLORS = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-green-600']
+const STRENGTH_COLORS = ['bg-destructive', 'bg-warning', 'bg-warning', 'bg-primary', 'bg-primary']
 
 const formSchema = z
   .object({
@@ -140,39 +140,37 @@ export default function Register() {
   // Loading registration status
   if (registrationEnabled === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <AuthLayout contentWidth="compact">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      </AuthLayout>
     )
   }
 
   if (registrationEnabled === false) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Card className="w-full max-w-sm text-center">
-          <CardHeader>
-            <div className="flex items-center gap-2.5 justify-center mb-2">
-              <KutupLogo size={34} />
-              <span className="text-3xl font-bold text-primary tracking-tight">Kutup</span>
-            </div>
-            <CardTitle>{t('register.disabled.title')}</CardTitle>
+      <AuthLayout contentWidth="compact">
+        <Card className="border-0 bg-transparent text-center shadow-none">
+          <CardHeader className="px-0 pt-0">
+            <h1 className="font-display text-2xl font-semibold tracking-[-0.025em]">
+              {t('register.disabled.title')}
+            </h1>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-0 pb-0">
             <p className="text-sm text-muted-foreground">
               {t('register.disabled.desc')}
             </p>
-            <Link to="/login" className="text-primary hover:underline text-sm">{t('register.disabled.backToSignIn')}</Link>
+            <Link to="/login" className="text-sm text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary">{t('register.disabled.backToSignIn')}</Link>
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   if (step === 'generating' || step === 'submitting') {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Card className="w-full max-w-sm">
-          <CardContent className="pt-8 pb-8 flex flex-col items-center gap-3">
+      <AuthLayout contentWidth="compact">
+        <Card className="border-0 bg-transparent shadow-none">
+          <CardContent className="flex flex-col items-center gap-3 p-0 py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm font-medium">
               {step === 'generating' ? t('register.generatingKeys') : t('register.creatingAccount')}
@@ -182,19 +180,26 @@ export default function Register() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   if (step === 'mnemonic' && keys) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Card className="w-full max-w-xl">
-          <CardHeader>
-            <CardTitle>{t('register.mnemonic.title')}</CardTitle>
+      <AuthLayout contentWidth="wide">
+        <Card className="border-0 bg-transparent shadow-none">
+          <CardHeader className="px-0 pt-0">
+            <h1 className="font-display text-2xl font-semibold tracking-[-0.025em]">
+              {t('register.mnemonic.title')}
+            </h1>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert className="border-yellow-500/50 text-yellow-400 bg-yellow-500/10">
+          <CardContent className="space-y-4 px-0 pb-0">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <Alert className="border-warning/40 bg-warning-faint text-warning">
               <AlertDescription>
                 This 24-word phrase is shown <strong>once</strong>. Write it down and store it safely.
                 It is the only way to recover your account if you forget your password.
@@ -206,18 +211,20 @@ export default function Register() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   if (step === 'confirm') {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Card className="w-full max-w-xl">
-          <CardHeader>
-            <CardTitle>{t('register.confirm.title')}</CardTitle>
+      <AuthLayout contentWidth="wide">
+        <Card className="border-0 bg-transparent shadow-none">
+          <CardHeader className="px-0 pt-0">
+            <h1 className="font-display text-2xl font-semibold tracking-[-0.025em]">
+              {t('register.confirm.title')}
+            </h1>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-0 pb-0">
             <form onSubmit={handleConfirmMnemonic} className="space-y-4">
               <p className="text-sm text-muted-foreground">{t('register.confirm.instruction')}</p>
               <textarea
@@ -237,35 +244,37 @@ export default function Register() {
             </form>
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   if (step === 'done') {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Card className="w-full max-w-sm text-center">
-          <CardHeader><CardTitle>{t('register.success.title')}</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
+      <AuthLayout contentWidth="compact">
+        <Card className="border-0 bg-transparent text-center shadow-none">
+          <CardHeader className="px-0 pt-0">
+            <h1 className="font-display text-2xl font-semibold tracking-[-0.025em]">
+              {t('register.success.title')}
+            </h1>
+          </CardHeader>
+          <CardContent className="space-y-4 px-0 pb-0">
             <p className="text-sm text-muted-foreground">{t('register.success.desc')}</p>
             <Button className="w-full" onClick={() => navigate('/login')}>{t('register.success.signIn')}</Button>
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <div className="flex items-center gap-2.5 justify-center mb-2">
-            <KutupLogo size={34} />
-            <span className="text-3xl font-bold text-primary tracking-tight">Kutup</span>
-          </div>
-          <CardTitle className="text-center">{t('register.title')}</CardTitle>
+    <AuthLayout contentWidth="compact">
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardHeader className="px-0 pt-0">
+          <h1 className="font-display text-3xl font-semibold tracking-[-0.035em]">
+            {t('register.title')}
+          </h1>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 pb-0">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -349,10 +358,10 @@ export default function Register() {
           </Form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             {t('auth.alreadyHaveAccount')}{' '}
-            <Link to="/login" className="text-primary hover:underline">{t('auth.signIn')}</Link>
+            <Link to="/login" className="text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary">{t('auth.signIn')}</Link>
           </p>
         </CardContent>
       </Card>
-    </div>
+    </AuthLayout>
   )
 }

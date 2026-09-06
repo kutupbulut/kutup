@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 /**
- * TrashView — the desktop trash board, rendered inside Drive's Sidebar +
+ * TrashView — the desktop trash board, rendered inside the app shell +
  * DriveTopBar chrome when `viewMode === 'trash'`. Lists the user's trash
  * roots with Restore / Delete-forever per row and an Empty-trash header
  * action; both destructive paths confirm first.

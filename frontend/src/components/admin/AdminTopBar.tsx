@@ -1,15 +1,6 @@
 import type { ReactNode } from 'react'
 
-/**
- * AdminTopBar — sticky header above each tab's content area on the desktop
- * admin page. Pairs a left-side title block (title + optional subtitle)
- * with a right-side action slot (free-form JSX so each tab can drop in its
- * own buttons — e.g. "Refresh" + "Create user" on the Users tab).
- *
- * Sticky positioning keeps the title visible while the table scrolls under
- * it. The surface + border-light styling matches the rest of the admin
- * chrome.
- */
+/** Title and primary action for the active administration section. */
 interface AdminTopBarProps {
   title: string
   subtitle?: string
@@ -19,20 +10,16 @@ interface AdminTopBarProps {
 
 export function AdminTopBar({ title, subtitle, action }: AdminTopBarProps) {
   return (
-    <div className="sticky top-0 z-10 flex items-center justify-between px-8 py-4 bg-surface border-b border-border-light">
+    <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border-light bg-surface px-8 py-4">
       <div className="min-w-0">
-        <div className="text-[22px] font-bold text-text-primary tracking-[-0.3px] truncate">
+        <h2 className="font-display text-xl font-semibold tracking-[-0.02em] text-foreground sm:text-[22px]">
           {title}
-        </div>
-        {subtitle && (
-          <div className="text-[13px] text-text-tertiary mt-0.5 truncate">
-            {subtitle}
-          </div>
-        )}
+        </h2>
+        {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
       </div>
       {action && (
         <div className="flex items-center gap-2.5 shrink-0">{action}</div>
       )}
-    </div>
+    </header>
   )
 }

@@ -676,9 +676,9 @@ export default function TextCollabEditor({
   }
 
   const statusDot = status === 'ready'
-    ? 'bg-emerald-500'
+    ? 'bg-primary'
     : status === 'connecting'
-      ? 'bg-amber-500 animate-pulse'
+      ? 'bg-warning animate-pulse'
       : 'bg-destructive'
 
   return (
@@ -712,7 +712,7 @@ export default function TextCollabEditor({
             title="Save current state (⌘/Ctrl+S)"
             className="gap-1.5"
           >
-            {justSaved ? <Check className="h-4 w-4 text-emerald-500" /> : <Save className="h-4 w-4" />}
+            {justSaved ? <Check className="h-4 w-4 text-primary" /> : <Save className="h-4 w-4" />}
             {savingPlain ? 'Saving…' : justSaved ? 'Saved' : 'Save'}
           </Button>
           <Button

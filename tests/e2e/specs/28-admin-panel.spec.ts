@@ -20,17 +20,30 @@ test.describe.serial('admin panel', () => {
     ctx = await browser.newContext({ ignoreHTTPSErrors: true })
     page = await signInOrBootstrap(ctx)
     await page.goto('/admin')
-    // AdminSidebar is the tell-tale that the admin shell mounted.
-    await expect(page.locator('aside')).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByRole('heading', { level: 2, name: 'Admin Overview' })).toBeVisible({
+      timeout: 30_000,
+    })
   })
 
   test.afterAll(async () => {
     await ctx.close()
   })
 
-  /** Switch admin tab via the sidebar nav. */
+  /** Switch sections through the dedicated admin navigation. */
   async function gotoTab(name: 'Overview' | 'Users' | 'Settings') {
-    await page.locator('aside').getByRole('button', { name, exact: true }).click()
+    const navigation = page.getByRole('navigation', { name: 'Admin' })
+    const section = navigation.getByRole('button', { name, exact: true })
+    await section.click()
+    await expect(section).toHaveAttribute('aria-current', 'page')
+    await expect(page).toHaveURL(
+      name === 'Overview' ? /\/admin$/ : new RegExp(`/admin/${name.toLowerCase()}$`),
+    )
+    await expect(
+      page.getByRole('heading', {
+        level: 2,
+        name: name === 'Overview' ? 'Admin Overview' : name,
+      }),
+    ).toBeVisible()
   }
 
   test('Overview renders the KPI grid + encryption banner', async () => {

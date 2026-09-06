@@ -11,7 +11,7 @@ import { setAuth } from '@/store/authSlice'
 import api from '@/api/client'
 import type { RegistrationKeys } from '@/crypto'
 import { generateRegistrationInWorker } from '@/crypto/accountProtectionWorker'
-import { KutupLogo } from '@/components/KutupLogo'
+import { AuthLayout } from '@/components/auth/AuthLayout'
 import MnemonicDisplay from '@/components/MnemonicDisplay'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,7 +26,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
 const formSchema = z
   .object({
@@ -150,9 +150,9 @@ export default function FirstLogin() {
 
   if (step === 'generating' || step === 'submitting') {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Card className="w-full max-w-sm">
-          <CardContent className="pt-8 pb-8 flex flex-col items-center gap-3">
+      <AuthLayout contentWidth="compact">
+        <Card className="border-0 bg-transparent shadow-none">
+          <CardContent className="flex flex-col items-center gap-3 p-0 py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm font-medium">
               {step === 'generating' ? t('firstLogin.generatingKeys') : t('firstLogin.finishingSetup')}
@@ -162,17 +162,21 @@ export default function FirstLogin() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   if (step === 'mnemonic' && keys) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Card className="w-full max-w-xl">
-          <CardHeader><CardTitle>{t('register.mnemonic.title')}</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <Alert className="border-yellow-500/50 text-yellow-400 bg-yellow-500/10">
+      <AuthLayout contentWidth="wide">
+        <Card className="border-0 bg-transparent shadow-none">
+          <CardHeader className="px-0 pt-0">
+            <h1 className="font-display text-2xl font-semibold tracking-[-0.025em]">
+              {t('register.mnemonic.title')}
+            </h1>
+          </CardHeader>
+          <CardContent className="space-y-4 px-0 pb-0">
+            <Alert className="border-warning/40 bg-warning-faint text-warning">
               <AlertDescription>
                 This 24-word phrase is shown <strong>once</strong>. Write it down and store it safely.
                 It is the only way to recover your account if you forget your password.
@@ -184,16 +188,20 @@ export default function FirstLogin() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   if (step === 'confirm') {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Card className="w-full max-w-xl">
-          <CardHeader><CardTitle>{t('register.confirm.title')}</CardTitle></CardHeader>
-          <CardContent>
+      <AuthLayout contentWidth="wide">
+        <Card className="border-0 bg-transparent shadow-none">
+          <CardHeader className="px-0 pt-0">
+            <h1 className="font-display text-2xl font-semibold tracking-[-0.025em]">
+              {t('register.confirm.title')}
+            </h1>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
             <form onSubmit={handleConfirmMnemonic} className="space-y-4">
               <p className="text-sm text-muted-foreground">{t('register.confirm.instruction')}</p>
               <textarea
@@ -213,21 +221,19 @@ export default function FirstLogin() {
             </form>
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <div className="flex items-center gap-2.5 justify-center mb-2">
-            <KutupLogo size={34} />
-            <span className="text-3xl font-bold text-primary tracking-tight">Kutup</span>
-          </div>
-          <CardTitle className="text-center">{t('firstLogin.title')}</CardTitle>
+    <AuthLayout contentWidth="compact">
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardHeader className="px-0 pt-0">
+          <h1 className="font-display text-3xl font-semibold tracking-[-0.035em]">
+            {t('firstLogin.title')}
+          </h1>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 pb-0">
           {email && (
             <p className="text-sm text-muted-foreground mb-4">
               {t('firstLogin.welcomeDesc')}{' '}
@@ -280,6 +286,6 @@ export default function FirstLogin() {
           </Form>
         </CardContent>
       </Card>
-    </div>
+    </AuthLayout>
   )
 }

@@ -5,14 +5,7 @@ import { MobileAccountSubPage } from '@/pages/mobile/account/MobileAccountSubPag
 import { Surface } from '@/components/ui/surface'
 import { PressableRow } from '@/components/ui/pressable-row'
 
-/**
- * MobileEncryptionKeysPage — `/drive/account/encryption-keys`.
- *
- * Surfaces the recovery-phrase flow. Kutup keeps the master key client-side
- * (encrypted with the user's password); the recovery phrase is the only way
- * to recover the account if the password is lost. This page links into the
- * existing /recover route for the rotation flow.
- */
+/** Explains encryption and links to the existing account-recovery flow. */
 export default function MobileEncryptionKeysPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -37,38 +30,20 @@ export default function MobileEncryptionKeysPage() {
       <Surface className="mb-4">
         <PressableRow
           onClick={() => navigate('/recover')}
-          last={false}
-          ariaLabel={t('mobile.account.encryptionKeys.viewRecovery', 'View recovery phrase')}
+          last
+          ariaLabel={t('mobile.account.encryptionKeys.recover', 'Recover an account')}
         >
           <div className="w-8 h-8 rounded-[10px] bg-surface-sunken text-text-secondary flex items-center justify-center shrink-0">
             <Icon d={ICONS.key} size={16} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium text-text-primary">
-              {t('mobile.account.encryptionKeys.viewRecovery', 'View recovery phrase')}
-            </div>
-            <div className="text-[12px] text-text-tertiary">
-              {t('mobile.account.encryptionKeys.viewRecoverySub', 'Write down or print the 24 words')}
-            </div>
-          </div>
-          <Icon d={ICONS.chevronRight} size={16} color="var(--text-tertiary)" />
-        </PressableRow>
-        <PressableRow
-          onClick={() => navigate('/recover')}
-          last
-          ariaLabel={t('mobile.account.encryptionKeys.rotate', 'Rotate recovery phrase')}
-        >
-          <div className="w-8 h-8 rounded-[10px] bg-surface-sunken text-text-secondary flex items-center justify-center shrink-0">
-            <Icon d={ICONS.rotateCcw} size={16} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-text-primary">
-              {t('mobile.account.encryptionKeys.rotate', 'Rotate recovery phrase')}
+              {t('mobile.account.encryptionKeys.recover', 'Recover an account')}
             </div>
             <div className="text-[12px] text-text-tertiary">
               {t(
-                'mobile.account.encryptionKeys.rotateSub',
-                'Generate a new phrase — invalidates the old one',
+                'mobile.account.encryptionKeys.recoverSub',
+                'Use a saved recovery phrase to restore access',
               )}
             </div>
           </div>
@@ -79,7 +54,7 @@ export default function MobileEncryptionKeysPage() {
       <p className="text-[12px] text-text-tertiary px-1">
         {t(
           'mobile.account.encryptionKeys.footer',
-          'Kutup never sees your phrase — it stays on this device and the devices you sync it to.',
+          'Kutup cannot display or rotate a saved recovery phrase. Keep your original copy somewhere safe.',
         )}
       </p>
     </MobileAccountSubPage>

@@ -10,10 +10,8 @@ import { cn } from '@/lib/utils'
  *
  * Per the design, the icon tile gets a primary-faint tint when `accent` is
  * true (one card per page), and a neutral surface-sunken background
- * otherwise. The delta badge is intentionally optional — kutup's
- * `/admin/stats` endpoint doesn't return historical deltas today, so PR 13
- * renders without any of them. The prop is kept for the future when a
- * historical-stats endpoint lands.
+ * otherwise. The delta badge is intentionally optional because
+ * `/admin/stats` does not currently return historical comparisons.
  */
 export interface AdminKpiCardProps {
   icon: IconName

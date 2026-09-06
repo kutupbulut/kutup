@@ -7,6 +7,8 @@ import {
   applyTheme,
   toggleTheme,
   isThemePreference,
+  initSystemThemeWatcher,
+  subscribeThemePreference,
 } from './theme'
 
 const KEY = 'kutup-theme'
@@ -91,6 +93,12 @@ describe('theme', () => {
       localStorage.setItem(KEY, 'system')
       expect(getThemePreference()).toBe('system')
     })
+    it('defaults to system when preference storage is unavailable', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new DOMException('blocked', 'SecurityError')
+      })
+      expect(getThemePreference()).toBe('system')
+    })
   })
 
   describe('getTheme (resolved)', () => {
@@ -124,6 +132,29 @@ describe('theme', () => {
       expect(document.documentElement.style.colorScheme).toBe('light')
       expect(localStorage.getItem(KEY)).toBe('light')
     })
+
+    it('notifies preference subscribers even when the resolved theme is unchanged', () => {
+      mockOSDark(false)
+      const listener = vi.fn()
+      const unsubscribe = subscribeThemePreference(listener)
+
+      applyTheme('light')
+      applyTheme('system')
+
+      expect(listener).toHaveBeenNthCalledWith(1, 'light')
+      expect(listener).toHaveBeenNthCalledWith(2, 'system')
+      unsubscribe()
+    })
+
+    it('still applies the document theme when preference storage is unavailable', () => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('blocked', 'SecurityError')
+      })
+
+      expect(() => applyTheme('dark')).not.toThrow()
+      expect(document.documentElement).toHaveClass('dark')
+      expect(document.documentElement.style.colorScheme).toBe('dark')
+    })
   })
 
   describe('toggleTheme', () => {
@@ -135,6 +166,39 @@ describe('theme', () => {
       expect(document.documentElement.classList.contains('dark')).toBe(true)
       const back = toggleTheme()
       expect(back).toBe('light')
+      expect(getThemePreference()).toBe('light')
+    })
+  })
+
+  describe('system preference changes', () => {
+    it('tracks OS changes only while System remains selected', () => {
+      let dark = false
+      let notifyChange: (() => void) | undefined
+      vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+        matches: query.includes('dark') ? dark : !dark,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: (_event: string, listener: EventListenerOrEventListenerObject) => {
+          notifyChange = typeof listener === 'function'
+            ? () => listener(new Event('change'))
+            : () => listener.handleEvent(new Event('change'))
+        },
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }) as MediaQueryList)
+
+      applyTheme('system')
+      initSystemThemeWatcher()
+      dark = true
+      notifyChange?.()
+      expect(document.documentElement).toHaveClass('dark')
+
+      applyTheme('light')
+      dark = false
+      notifyChange?.()
+      expect(document.documentElement).toHaveClass('light')
       expect(getThemePreference()).toBe('light')
     })
   })

@@ -21,7 +21,7 @@ import {
 } from '@/lib/serverConfig'
 import { invalidateApiBase } from '@/lib/apiBase'
 import * as sessionVault from '@/lib/sessionVault'
-import { KutupLogo } from '@/components/KutupLogo'
+import { AuthLayout } from '@/components/auth/AuthLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
@@ -34,7 +34,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
 type Step = 'credentials' | 'deriving' | 'totp' | 'decrypting'
 
@@ -216,9 +216,9 @@ export default function Login() {
 
   if (isBusy) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Card className="w-full max-w-sm">
-          <CardContent className="pt-8 pb-8 flex flex-col items-center gap-3">
+      <AuthLayout contentWidth="compact">
+        <Card className="border-0 bg-transparent shadow-none">
+          <CardContent className="flex flex-col items-center gap-3 p-0 py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm font-medium">
               {step === 'deriving' ? t('auth.derivingKeys') : t('auth.decryptingVault')}
@@ -230,18 +230,20 @@ export default function Login() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   if (step === 'totp') {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle>{t('auth.totp.title')}</CardTitle>
+      <AuthLayout contentWidth="compact">
+        <Card className="border-0 bg-transparent shadow-none">
+          <CardHeader className="px-0 pt-0 text-center">
+            <h1 className="font-display text-xl font-semibold tracking-[-0.02em]">
+              {t('auth.totp.title')}
+            </h1>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-0 pb-0">
             <p className="text-sm text-muted-foreground mb-4">
               {t('auth.totp.enterCode')}
             </p>
@@ -282,21 +284,22 @@ export default function Login() {
             </Form>
           </CardContent>
         </Card>
-      </div>
+      </AuthLayout>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <div className="flex items-center gap-2.5 justify-center mb-2">
-            <KutupLogo size={34} />
-            <span className="text-3xl font-bold text-primary tracking-tight">Kutup</span>
-          </div>
-          <CardTitle className="text-center">{t('auth.signIn')}</CardTitle>
+    <AuthLayout contentWidth="compact">
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardHeader className="px-0 pt-0 text-center">
+          <h1 className="font-display text-xl font-semibold tracking-[-0.02em]">
+            {t('auth.signIn')}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t('auth.signInDescription')}
+          </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 pb-0">
           <Form {...credForm}>
             <form onSubmit={credForm.handleSubmit(onCredSubmit)} className="space-y-4">
               <FormField
@@ -338,18 +341,18 @@ export default function Login() {
           </Form>
           <div className="mt-4 space-y-1 text-center text-sm text-muted-foreground">
             <p>
-              <Link to="/recover" className="text-primary hover:underline">{t('auth.forgotPassword')}</Link>
+              <Link to="/recover" className="text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary">{t('auth.forgotPassword')}</Link>
             </p>
             <p>
               {t('auth.noAccount')}{' '}
-              <Link to="/register" className="text-primary hover:underline">{t('auth.createOne')}</Link>
+              <Link to="/register" className="text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary">{t('auth.createOne')}</Link>
             </p>
             {isTauri && (
               <p className="pt-2">
                 <button
                   type="button"
                   onClick={onSwitchServer}
-                  className="text-primary hover:underline"
+                  className="text-primary underline decoration-primary/50 underline-offset-4 hover:decoration-primary"
                 >
                   {t('auth.serverSelect.switchServer')}
                 </button>
@@ -358,6 +361,6 @@ export default function Login() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </AuthLayout>
   )
 }

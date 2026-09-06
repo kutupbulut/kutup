@@ -60,6 +60,8 @@ export function getTheme(): Theme {
 
 type Listener = (t: Theme) => void
 const listeners = new Set<Listener>()
+type PreferenceListener = (preference: ThemePreference) => void
+const preferenceListeners = new Set<PreferenceListener>()
 
 /**
  * Apply a *preference*: set the resolved `<html>` class + `color-scheme`,
@@ -82,6 +84,7 @@ export function applyTheme(pref: ThemePreference): void {
     // ignore — storage unavailable
   }
   listeners.forEach((l) => l(resolved))
+  preferenceListeners.forEach((l) => l(pref))
 }
 
 /** Binary toggle: flips the resolved theme and pins the choice (leaves
@@ -92,8 +95,7 @@ export function toggleTheme(): Theme {
   return next
 }
 
-/** Switch back to following the OS. Exported for a future "use system"
- *  control; not wired into any UI yet. */
+/** Switch back to following the OS. */
 export function followSystemTheme(): void {
   applyTheme('system')
 }
@@ -104,6 +106,16 @@ export function subscribeTheme(cb: Listener): () => void {
   listeners.add(cb)
   return () => {
     listeners.delete(cb)
+  }
+}
+
+/** Subscribe to the persisted preference rather than its light/dark result.
+ * This powers three-way controls where `system` must remain distinguishable
+ * from a pinned preference even when both currently resolve to the same theme. */
+export function subscribeThemePreference(cb: PreferenceListener): () => void {
+  preferenceListeners.add(cb)
+  return () => {
+    preferenceListeners.delete(cb)
   }
 }
 

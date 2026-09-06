@@ -1,8 +1,7 @@
 /**
- * File-type-aware icon-in-tinted-square — ported from the Claude Design
- * handoff. Maps a MIME type to one of nine icon variants (pdf / doc / sheet /
- * slides / image / text / audio / video / file) and renders the matching SVG
- * inside a square with a coordinated tint.
+ * File-type-aware icon-in-tinted-square. Maps a MIME type to one of nine icon
+ * variants (pdf / doc / sheet / slides / image / text / audio / video / file)
+ * and renders the matching SVG inside a square with a coordinated tint.
  *
  * The icon set is intentionally small + cohesive: every variant is a single
  * SVG path drawn over the same document-outline shape, so files feel like

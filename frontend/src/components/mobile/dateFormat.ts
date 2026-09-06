@@ -1,6 +1,5 @@
 /**
- * Tiny date formatters used by the mobile pages — ported from the Claude
- * Design handoff prototype.
+ * Tiny locale-aware date formatters used by responsive pages.
  *
  * Locale-aware (uses the browser's locale via `Intl.DateTimeFormat` defaults).
  * If the input is null/undefined/invalid, returns an em-dash.

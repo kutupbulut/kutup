@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Shield, KeyRound, ArrowLeft, Globe, Check, ChevronDown, Smartphone } from 'lucide-react'
+import { Loader2, Shield, KeyRound, Globe, Check, ChevronDown, Smartphone, Palette, UserRound } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useAppSelector, useAppDispatch } from '@/store'
 import { updateTotpEnabled, setColor } from '@/store/authSlice'
@@ -24,10 +24,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +37,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Separator } from '@/components/ui/separator'
 import {
   Dialog,
   DialogContent,
@@ -54,6 +51,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ThemeSelector } from '@/components/theme/ThemeSelector'
+import { MobileBottomNav } from '@/components/mobile/MobileBottomNav'
 
 const totpVerifySchema = z.object({
   code: z.string().length(6, 'Code must be 6 digits').regex(/^\d+$/, 'Digits only'),
@@ -64,6 +63,44 @@ const LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'tr', label: 'Türkçe' },
 ]
+
+function SettingsSection({ icon, title, description, children }: {
+  icon: ReactNode
+  title: string
+  description?: string
+  children: ReactNode
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border-light bg-surface shadow-sm">
+      <div className="flex items-start gap-3 border-b border-border-light px-4 py-4 sm:px-5">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-faint text-primary">
+          {icon}
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          {description && <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{description}</p>}
+        </div>
+      </div>
+      <div className="divide-y divide-border-light">{children}</div>
+    </section>
+  )
+}
+
+function SettingsRow({ label, children, stacked = false }: {
+  label: string
+  children: ReactNode
+  stacked?: boolean
+}) {
+  return (
+    <div className={cn(
+      'gap-4 px-4 py-3.5 sm:px-5',
+      stacked ? 'space-y-3' : 'flex items-center justify-between',
+    )}>
+      <span className="text-sm text-muted-foreground">{label}</span>
+      {children}
+    </div>
+  )
+}
 
 function DevicesSection() {
   const { t } = useTranslation()
@@ -99,28 +136,22 @@ function DevicesSection() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Smartphone className="h-4 w-4" />
-          {t('settings.devices.title')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">
-          {t('settings.devices.desc')}
-        </p>
-        {loading && <div className="text-sm text-muted-foreground">{t('common.loading')}</div>}
-        {error && <div className="text-sm text-destructive">{t('settings.devices.errorPrefix')} {error}</div>}
-        {!loading && !error && devs.length === 0 && (
-          <div className="text-sm text-muted-foreground">{t('settings.devices.empty')}</div>
-        )}
-        {devs.length > 0 && (
-          <ul className="divide-y rounded border">
+    <SettingsSection
+      icon={<Smartphone className="h-4 w-4" />}
+      title={t('settings.devices.title')}
+      description={t('settings.devices.desc')}
+    >
+      {loading && <div className="px-5 py-4 text-sm text-muted-foreground">{t('common.loading')}</div>}
+      {error && <div className="px-5 py-4 text-sm text-destructive">{t('settings.devices.errorPrefix')} {error}</div>}
+      {!loading && !error && devs.length === 0 && (
+        <div className="px-5 py-4 text-sm text-muted-foreground">{t('settings.devices.empty')}</div>
+      )}
+      {devs.length > 0 && (
+          <ul className="divide-y divide-border-light">
             {devs.map((d) => {
               const label = d.label || t('settings.devices.fallbackLabel', { id: d.deviceId })
               return (
-                <li key={d.deviceId} className="flex items-center justify-between gap-2 p-3">
+                <li key={d.deviceId} className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm">{label}</div>
                     <div className="text-xs text-muted-foreground">
@@ -159,9 +190,8 @@ function DevicesSection() {
               )
             })}
           </ul>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </SettingsSection>
   )
 }
 
@@ -233,59 +263,46 @@ export default function Settings() {
   }
 
   return (
-    // pt-[calc(env(safe-area-inset-top)+1.5rem)] keeps the back button + title
-    // below the iOS status bar / Dynamic Island when this page renders inside
-    // the Tauri WebView. On desktop browsers the inset is 0 so the layout is
-    // unchanged. The bottom padding likewise honors the home indicator inset
-    // so the last card isn't clipped by the system gesture area.
-    <div
-      className="max-w-2xl mx-auto px-6 space-y-4"
+    <main
+      className="h-full overflow-y-auto"
       style={{
-        paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)',
-        paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/drive"><ArrowLeft className="h-4 w-4 mr-1" />{t('common.drive')}</Link>
-        </Button>
-        <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
+      <div className="mx-auto max-w-3xl space-y-5 px-4 pb-24 pt-6 sm:px-8 sm:pt-9 md:pb-9">
+      <div className="mb-7">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Kutup</p>
+        <h1 className="mt-1 font-display text-3xl font-semibold tracking-[-0.035em]">{t('settings.title')}</h1>
       </div>
 
-      {/* Account info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t('settings.account.title')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex justify-between items-center py-1">
-            <span className="text-sm text-muted-foreground">{t('settings.account.email')}</span>
-            <span className="text-sm">{auth.email}</span>
-          </div>
-          <Separator />
-          <div className="flex justify-between items-center py-1">
-            <span className="text-sm text-muted-foreground">{t('settings.account.username')}</span>
-            <span className="text-sm">@{auth.username}</span>
-          </div>
-          <Separator />
-          <div className="space-y-2 py-1">
+      <SettingsSection icon={<UserRound className="h-4 w-4" />} title={t('settings.account.title')}>
+          <SettingsRow label={t('settings.account.email')}>
+            <span className="max-w-[65%] truncate text-sm font-medium">{auth.email}</span>
+          </SettingsRow>
+          <SettingsRow label={t('settings.account.username')}>
+            <span className="text-sm font-medium">@{auth.username}</span>
+          </SettingsRow>
+          <SettingsRow label={t('settings.account.storage')} stacked>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{t('settings.account.storage')}</span>
               <span>{formatBytes(auth.storageUsedBytes)} / {formatBytes(auth.storageQuotaBytes)}</span>
+              <span className="text-muted-foreground">{quotaPercent}%</span>
             </div>
-            <Progress value={quotaPercent} className="h-1.5" />
-          </div>
-          <Separator />
-          <div className="space-y-2 py-1">
+            <Progress
+              value={quotaPercent}
+              className="h-1.5"
+              aria-label={t('settings.account.storage')}
+            />
+          </SettingsRow>
+          <SettingsRow label={t('settings.account.presenceColor')} stacked>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">{t('settings.account.presenceColor')}</span>
+              <p className="max-w-md text-xs leading-5 text-muted-foreground">{t('settings.account.presenceColorDesc')}</p>
               <div className="flex items-center gap-3">
-                {/* Currently-selected chip — always rendered to avoid the
-                    layout shift that the user flagged when picking a swatch.
-                    When `auth.color` is unset the chip shows a dashed
-                    placeholder, and the Reset button is kept in flow but
-                    invisible (so the row width doesn't change between
-                    states). */}
+                <span className="sr-only">
+                  {auth.color
+                    ? t('settings.account.presenceColorSelected', { color: auth.color })
+                    : t('settings.account.presenceColorNone', 'No presence color selected')}
+                </span>
                 <span
                   className={cn(
                     'inline-block h-4 w-4 rounded-full shrink-0',
@@ -294,11 +311,7 @@ export default function Settings() {
                       : 'border border-dashed border-muted-foreground/40',
                   )}
                   style={auth.color ? { background: auth.color } : undefined}
-                  aria-label={
-                    auth.color
-                      ? t('settings.account.presenceColorSelected', { color: auth.color })
-                      : t('settings.account.presenceColorNone', 'No presence color selected')
-                  }
+                  aria-hidden="true"
                 />
                 <Button
                   variant="ghost"
@@ -315,38 +328,32 @@ export default function Settings() {
                 </Button>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">{t('settings.account.presenceColorDesc')}</p>
-            <div className="grid grid-cols-10 gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {CURSOR_COLORS_20.map((hex) => (
                 <button
                   key={hex}
                   type="button"
                   onClick={() => updatePresenceColor(hex)}
-                  className={`h-7 w-7 rounded-full border-2 ${auth.color === hex ? 'border-foreground' : 'border-transparent'} hover:scale-110 transition-transform`}
+                  className={`h-7 w-7 rounded-full border-2 ${auth.color === hex ? 'border-foreground' : 'border-transparent'} transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
                   style={{ background: hex }}
                   aria-label={hex}
                   title={hex}
                 />
               ))}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </SettingsRow>
+      </SettingsSection>
 
-      {/* TOTP */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            {t('settings.totp.title')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SettingsSection
+        icon={<Shield className="h-4 w-4" />}
+        title={t('settings.totp.title')}
+        description={auth.totpEnabled ? t('settings.totp.active') : t('settings.totp.addSecurity')}
+      >
+        <div className="px-4 py-4 sm:px-5">
           {auth.totpEnabled ? (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-green-500/50 text-green-400">{t('settings.totp.enabled')}</Badge>
-                <span className="text-sm text-muted-foreground">{t('settings.totp.active')}</span>
+                <Badge variant="outline" className="border-primary/25 bg-primary-faint text-primary">{t('settings.totp.enabled')}</Badge>
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -372,31 +379,27 @@ export default function Settings() {
               </AlertDialog>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {t('settings.totp.addSecurity')}
-              </p>
+            <div className="flex justify-end">
               <Button size="sm" onClick={startTOTPSetup} disabled={setupLoading}>
                 {setupLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {t('settings.totp.setUp')}
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsSection>
 
-      {/* Devices */}
       <DevicesSection />
 
-      {/* Language */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            {t('settings.language.title')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <SettingsSection icon={<Palette className="h-4 w-4" />} title={t('theme.label')}>
+        <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <p className="text-sm text-muted-foreground">{t('theme.description')}</p>
+          <ThemeSelector className="w-full shrink-0 sm:w-auto sm:min-w-72" />
+        </div>
+      </SettingsSection>
+
+      <SettingsSection icon={<Globe className="h-4 w-4" />} title={t('settings.language.title')}>
+        <div className="px-4 py-4 sm:px-5">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">{t('settings.language.desc')}</p>
             <DropdownMenu>
@@ -421,28 +424,22 @@ export default function Settings() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsSection>
 
-      {/* Encryption info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <KeyRound className="h-4 w-4" />
-            {t('settings.encryption.title')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
+      <SettingsSection icon={<KeyRound className="h-4 w-4" />} title={t('settings.encryption.title')}>
+        <div className="space-y-2 px-4 py-4 text-sm leading-6 text-muted-foreground sm:px-5">
           <p>{t('settings.encryption.desc1')}</p>
           <p>
             {t('settings.encryption.desc2')}{' '}
             <Link to="/recover" className="text-primary hover:underline">{t('settings.encryption.recoveryLink')}</Link>{' '}
             {t('settings.encryption.desc2end')}
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsSection>
 
-      {/* TOTP setup dialog */}
+      </div>
+
       <Dialog open={totpDialogOpen} onOpenChange={setTotpDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -502,6 +499,9 @@ export default function Settings() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+      <div className="md:hidden">
+        <MobileBottomNav />
+      </div>
+    </main>
   )
 }

@@ -1367,8 +1367,9 @@ impl Session {
         envelope: &DeliveredEnvelope,
         rng: &mut R,
     ) -> Result<ReceiveOutcome> {
-        let sender = envelope.sender.clone().ok_or(ChatError::MissingSender)?;
-        let from = ChatAddress::from_sender(&sender, envelope.sender_device_id)?;
+        let delivered_sender = envelope.sender.as_deref().ok_or(ChatError::MissingSender)?;
+        let (sender, from) =
+            self.resolve_delivered_sender(delivered_sender, envelope.sender_device_id)?;
         let plaintext = match self.decrypt_bytes_staged(&from, envelope, rng).await {
             Ok(plaintext) => plaintext,
             Err(e) => {
@@ -1378,6 +1379,32 @@ impl Session {
         };
         self.finish_received_envelope(envelope, sender, envelope.sender_device_id, from, plaintext)
             .await
+    }
+
+    /// Identified local delivery keeps the legacy bare username on the wire,
+    /// while the browser binds all libsignal sessions to canonical
+    /// `username@homeserver` addresses. Qualify only bare senders with this
+    /// session's already-validated local domain before choosing the ratchet or
+    /// comparing a linked-device sender with the local account.
+    fn resolve_delivered_sender(
+        &self,
+        sender: &str,
+        device_id: u32,
+    ) -> Result<(String, ChatAddress)> {
+        let mut account: kutup_chat_proto::AccountAddress =
+            sender
+                .parse()
+                .map_err(|error: kutup_chat_proto::AddressError| {
+                    ChatError::Invalid(error.to_string())
+                })?;
+        if account.server.is_none() {
+            if let Some(server) = self.address.domain.as_deref() {
+                account = kutup_chat_proto::AccountAddress::federated(&account.username, server)
+                    .map_err(|error| ChatError::Invalid(error.to_string()))?;
+            }
+        }
+        let sender = account.canonical();
+        Ok((sender, ChatAddress::from_account(account, device_id)))
     }
 
     pub(crate) async fn inspect_sealed_envelope(
@@ -1562,6 +1589,7 @@ impl Session {
                 let message = SentMessage {
                     send_id: transcript.send_id,
                     peer: transcript.peer,
+                    sender_device_id,
                     content: serde_json::to_vec(&transcript.content)
                         .map_err(|e| ChatError::Content(e.to_string()))?,
                     created_at: transcript.timestamp_ms,
@@ -2457,6 +2485,7 @@ impl Session {
                 self.store.stage_sent_message(SentMessage {
                     send_id: send_id.to_string(),
                     peer: peer_user.to_string(),
+                    sender_device_id: self.device_id(),
                     content: plaintext,
                     created_at,
                     delivered_at: None,
@@ -2552,6 +2581,7 @@ impl Session {
                 self.store.stage_sent_message(SentMessage {
                     send_id: send_id.to_string(),
                     peer: peer_user.to_string(),
+                    sender_device_id: self.device_id(),
                     content: plaintext,
                     created_at,
                     delivered_at: None,
@@ -2703,6 +2733,7 @@ impl Session {
                 self.store.stage_sent_message(SentMessage {
                     send_id: send_id.to_string(),
                     peer: user,
+                    sender_device_id: self.device_id(),
                     content: content_plaintext,
                     created_at,
                     delivered_at: None,
@@ -3436,6 +3467,7 @@ mod sealed_tests {
             SentMessage {
                 send_id: "send-1".into(),
                 peer: "bob@b.test".into(),
+                sender_device_id: 1,
                 content: content("sent", 2),
                 created_at: 200,
                 delivered_at: Some(201),
@@ -3615,6 +3647,7 @@ mod sealed_tests {
             SentMessage {
                 send_id: sent_id.into(),
                 peer: "bob@b.test".into(),
+                sender_device_id: 1,
                 content: expiring(sent_id, 2, "outbound"),
                 created_at: 1_000,
                 delivered_at: Some(2_000),
@@ -3649,6 +3682,7 @@ mod sealed_tests {
                 SentMessage {
                     send_id: id.into(),
                     peer: "alice@a.test".into(),
+                    sender_device_id: 1,
                     content: expiry_start(id, seq, conversation, target),
                     created_at: 1_000,
                     delivered_at: Some(1_001),

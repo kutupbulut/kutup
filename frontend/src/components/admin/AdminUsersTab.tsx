@@ -182,7 +182,7 @@ export function AdminUsersTab({ users, loading, onCreate }: AdminUsersTabProps) 
   }
 
   return (
-    <div className="px-8 py-6">
+    <div>
       {/* Search + filters + Export */}
       <div className="flex items-center gap-3.5 mb-4 flex-wrap">
         <div className="flex-1 min-w-[240px] max-w-[360px] h-9 flex items-center gap-2 px-3.5 rounded-[19px] border border-border bg-surface">

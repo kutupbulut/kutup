@@ -191,12 +191,7 @@ pub async fn list_collections(
             None
         };
 
-        let domain = state
-            .federation
-            .as_ref()
-            .map(|federation| federation.server_name())
-            .filter(|domain| !domain.is_empty())
-            .ok_or_else(|| AppError::conflict("named shares require a canonical server domain"))?;
+        let domain = state.config.chat_server_name.as_str();
         let owner_username = row
             .owner_username
             .as_deref()
@@ -442,12 +437,7 @@ pub async fn get_collection(
     let Some(row) = shared else {
         return Err(AppError::not_found("not found"));
     };
-    let domain = state
-        .federation
-        .as_ref()
-        .map(|federation| federation.server_name())
-        .filter(|domain| !domain.is_empty())
-        .ok_or_else(|| AppError::conflict("named shares require a canonical server domain"))?;
+    let domain = state.config.chat_server_name.as_str();
     let owner_username = row
         .owner_username
         .as_deref()
@@ -693,12 +683,7 @@ pub async fn share_collection(
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::bad_request("invalid recipient"))?;
-    let domain = state
-        .federation
-        .as_ref()
-        .map(|federation| federation.server_name())
-        .filter(|domain| !domain.is_empty())
-        .ok_or_else(|| AppError::conflict("named shares require a canonical server domain"))?;
+    let domain = state.config.chat_server_name.as_str();
     let sender_account = format!(
         "{}@{domain}",
         sender

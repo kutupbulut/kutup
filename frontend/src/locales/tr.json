@@ -26,6 +26,7 @@
     "clearSearch": "Aramayı temizle",
     "shortcutsAria": "Klavye kısayolları",
     "shortcutsTitle": "Klavye kısayolları (?)",
+    "refresh": "Yenile",
     "save": "Kaydet"
   },
   "nav": {
@@ -43,7 +44,17 @@
     "messages": "Mesajlar",
     "trash": "Çöp Kutusu",
     "account": "Hesap",
-    "primary": "Birincil gezinme"
+    "switchLanguage": "Dili {{language}} olarak değiştir",
+    "primary": "Birincil gezinme",
+    "workspace": "Çalışma alanı",
+    "manage": "Yönetim"
+  },
+  "theme": {
+    "label": "Görünüm",
+    "light": "Açık",
+    "dark": "Koyu",
+    "system": "Sistem",
+    "description": "Bir tema seçin veya bu cihazı takip edin."
   },
   "chat": {
     "title": "Mesajlar",
@@ -89,6 +100,8 @@
     "newerClient": "Daha yeni bir istemciden gelen mesaj",
     "selectConversation": "Bir konuşma seçin",
     "chooseConversation": "Bir konuşma seçin veya başlatın.",
+    "timeline": "Konuşma zaman çizelgesi",
+    "jumpToLatest": "En yeniye git",
     "protocolEncryption": "Signal protokolüyle şifreleme",
     "sync": "Mesajları eşitle",
     "attention_one": "{{count}} şifreli mesaj ilgilenmenizi bekliyor ve henüz onaylanmadı.",
@@ -273,12 +286,21 @@
   },
   "auth": {
     "signIn": "Giriş yap",
+    "signInDescription": "Devam etmek için Kutup hesabınızı kullanın.",
     "email": "E-posta",
     "password": "Şifre",
     "forgotPassword": "Şifremi unuttum?",
     "noAccount": "Hesabınız yok mu?",
     "createOne": "Oluşturun",
     "alreadyHaveAccount": "Zaten hesabınız var mı?",
+    "protection": {
+      "eyebrow": "Tasarımı gereği gizli",
+      "title": "Çalışma alanınız sizin denetiminizde kalır.",
+      "description": "Dosyalar ve mesajlar, korunan içerik sunucunuza ulaşmadan önce cihazınızda şifrelenir.",
+      "device": "Anahtarlar bu cihazda türetilir",
+      "encrypted": "İçerik yüklenmeden önce şifrelenir",
+      "selfHosted": "Sunucuyu kuruluşunuz seçer"
+    },
     "derivingKeys": "Anahtarlar türetiliyor…",
     "decryptingVault": "Kasa çözümleniyor…",
     "argon2idNote": "Argon2id anahtar türetme çalışıyor (bu biraz zaman alabilir)",
@@ -371,6 +393,15 @@
     }
   },
   "drive": {
+    "searchPlaceholder": "Bu klasörde ara…",
+    "searchAria": "Mevcut klasörde ara",
+    "breadcrumb": "Klasör yolu",
+    "emptyFolderTitle": "Bu klasör boş",
+    "emptyFolderDescription": "Dosyaları buraya bırakın veya Dosya yükle'yi seçin.",
+    "emptyReadOnlyTitle": "Bu klasörde dosya yok",
+    "emptyReadOnlyDescription": "Bu paylaşılan klasör salt okunurdur.",
+    "uploadFilesAction": "Dosya yükle",
+    "selectionActions": "Seçili öğe işlemleri",
     "foldersHeader": "Klasörler",
     "filesHeader": "Dosyalar",
     "dropToUpload": "“{{name}}” klasörüne yüklemek için bırakın",
@@ -381,7 +412,10 @@
     "downloadFiles_other": "{{count}} dosyayı indir",
     "downloadFolders_one": "Klasörü ZIP olarak indir",
     "downloadFolders_other": "{{count}} klasörü ZIP olarak indir",
+    "sharedEmptyTitle": "Sizinle paylaşılan öğe yok",
     "noSharedFolders": "Henüz sizinle paylaşılan klasör yok.",
+    "searchEmptyTitle": "Eşleşen dosya yok",
+    "searchEmptyDescription": "Bu klasörde “{{query}}” ile eşleşen öğe yok.",
     "uploadFiles": "Dosya yükle",
     "newFolder": "Yeni klasör",
     "addRemoteShare": "Uzak paylaşım ekle",
@@ -450,6 +484,9 @@
   },
   "folders": {
     "open": "Aç",
+    "openNamed": "{{name}} klasörünü aç",
+    "selectNamed": "{{name}} klasörünü seç",
+    "actionsNamed": "{{name}} klasörü için işlemler",
     "details": "Ayrıntılar",
     "rename": "Yeniden adlandır",
     "uploadHere": "Buraya yükle",
@@ -467,6 +504,9 @@
   },
   "files": {
     "name": "Ad",
+    "openNamed": "{{name}} dosyasını aç",
+    "selectNamed": "{{name}} dosyasını seç",
+    "actionsNamed": "{{name}} dosyası için işlemler",
     "size": "Boyut",
     "modified": "Değiştirildi",
     "uploaded": "Yüklendi",
@@ -491,6 +531,9 @@
     "created": "Oluşturuldu",
     "type": "Tür",
     "federatedShare": "Federasyon paylaşımı",
+    "folderColor": "Klasör rengi",
+    "setColor": "Klasör rengini {{color}} olarak ayarla",
+    "defaultColor": "Varsayılan klasör rengini kullan",
     "openFolder": "Klasörü aç",
     "rename": "Yeniden adlandır",
     "share": "Paylaş",
@@ -502,6 +545,8 @@
   },
   "upload": {
     "progress": "Yükleniyor",
+    "progressLabel": "{{total}} dosyanın {{current}}. dosyası yükleniyor, %{{percent}} tamamlandı",
+    "overallProgress": "Genel yükleme ilerlemesi",
     "dropOrClick": "Dosyaları buraya bırakın veya",
     "clickToUpload": "tıklayarak yükleyin",
     "readOnly": "Bu klasör salt okunurdur"
@@ -619,6 +664,10 @@
   "admin": {
     "title": "Yönetici Paneli",
     "createUser": "Kullanıcı oluştur",
+    "page": {
+      "title": "Yönetim",
+      "description": "Bu Kutup sunucusundaki kullanıcıları, ilkeleri ve depolamayı yönetin."
+    },
     "sidebar": {
       "drive": "← Sürücü",
       "adminSection": "Yönetici",
@@ -774,6 +823,8 @@
     }
   },
   "publicShare": {
+    "title": "Sizinle paylaşıldı",
+    "subtitle": "Bu şifreli bağlantıdaki dosyaların şifresi yalnızca bu tarayıcıda çözülür.",
     "decrypting": "Çözümleniyor…",
     "missingKey": "Şifre çözme anahtarı eksik — URL eksik olabilir. Anahtar #fragment içinde olmalıdır.",
     "e2e": "Uçtan uca şifrelenmiş — tarayıcınızda çözümlendi",
@@ -834,6 +885,7 @@
     "back": "Geri",
     "cancel": "İptal",
     "files": {
+      "views": "Dosya görünümleri",
       "subtitle": "{{folders}} klasör · {{files}} dosya",
       "search": {
         "placeholder": "Kutup'ta ara…",
@@ -842,14 +894,6 @@
       },
       "empty": {
         "subtitle": "Farklı bir arama terimi deneyin"
-      },
-      "chips": {
-        "all": "Tümü",
-        "recent": "Yakınlarda",
-        "photos": "Fotoğraflar",
-        "documents": "Belgeler",
-        "pdfs": "PDF'ler",
-        "audio": "Ses"
       }
     },
     "section": {
@@ -899,38 +943,30 @@
     "account": {
       "profile": "Profil",
       "encryptionKeys": "Şifreleme anahtarları",
-      "encryptionKeys.sub": "Kurtarma ifadenizi yönetin",
+      "encryptionKeys.sub": "Kurtarma ve şifreleme bilgileri",
       "security": "Güvenlik",
-      "notifications": "Bildirimler",
       "language": "Dil",
       "about": "Kutup Hakkında",
       "admin": "Yönetici",
       "signOut": "Çıkış yap",
-      "darkMode": "Karanlık mod",
-      "lightMode": "Aydınlık mod",
       "storage": "Depolama",
       "storageUsed": "{{used}} kullanıldı",
       "storageOf": "/ {{total}}",
-      "upgrade": "Yükselt",
-      "freePlan": "Ücretsiz plan",
+      "member": "Üye",
       "adminPlan": "Yönetici",
-      "tagline": "Kutup · Uçtan uca şifreli sürücü",
+      "tagline": "Kutup · Uçtan uca şifreli çalışma alanı",
       "profile.note": "Hesap bilgileri Kutup sunucunuz tarafından yönetilir. Değişiklik için yöneticinizle iletişime geçin.",
       "encryptionKeys.heroTitle": "Anahtarlarınız, verileriniz",
       "encryptionKeys.heroBody": "Dosyalar şifrenizden türetilen anahtarlarla uçtan uca şifrelenir. 24 kelimelik kurtarma ifadesi, şifrenizi unutursanız tek yedeğinizdir.",
-      "encryptionKeys.viewRecovery": "Kurtarma ifadesini görüntüle",
-      "encryptionKeys.viewRecoverySub": "24 kelimeyi yazın veya yazdırın",
-      "encryptionKeys.rotate": "Kurtarma ifadesini yenile",
-      "encryptionKeys.rotateSub": "Yeni ifade oluştur — eskisi geçersiz olur",
-      "encryptionKeys.footer": "Kutup ifadenizi asla görmez — bu cihazda ve senkronladığınız cihazlarda kalır.",
+      "encryptionKeys.recover": "Bir hesabı kurtar",
+      "encryptionKeys.recoverSub": "Erişimi geri yüklemek için kaydedilmiş kurtarma ifadesini kullanın",
+      "encryptionKeys.footer": "Kutup kayıtlı kurtarma ifadenizi görüntüleyemez veya yenileyemez. İlk kopyanızı güvenli bir yerde saklayın.",
       "security.totp": "İki adımlı doğrulama",
       "security.totpOn": "Etkin",
       "security.totpOff": "Etkin değil",
       "security.devices": "Güvenilir cihazlar",
       "security.devicesSub": "Tarayıcı sekmeleri ve CLI oturumları",
       "security.note": "Tam kurulum (QR kodu, kurtarma kodları, cihaz iptali) şu an masaüstü Ayarlar sayfasında.",
-      "notifications.emptyTitle": "Bildirim yok",
-      "notifications.emptySubtitle": "Paylaşımlar, etiketlemeler ve güncellemelerden gelen etkinlikler burada görünür.",
       "language.selected": "Seçili",
       "about.source": "Kaynak kod",
       "about.trademark": "Marka politikası",

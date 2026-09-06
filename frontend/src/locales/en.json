@@ -26,6 +26,7 @@
     "clearSearch": "Clear search",
     "shortcutsAria": "Keyboard shortcuts",
     "shortcutsTitle": "Keyboard shortcuts (?)",
+    "refresh": "Refresh",
     "save": "Save"
   },
   "nav": {
@@ -43,7 +44,17 @@
     "messages": "Messages",
     "trash": "Trash",
     "account": "Account",
-    "primary": "Primary navigation"
+    "switchLanguage": "Switch language to {{language}}",
+    "primary": "Primary navigation",
+    "workspace": "Workspace",
+    "manage": "Manage"
+  },
+  "theme": {
+    "label": "Appearance",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "description": "Choose a theme or follow this device."
   },
   "chat": {
     "title": "Messages",
@@ -89,6 +100,8 @@
     "newerClient": "Message from a newer client",
     "selectConversation": "Select a conversation",
     "chooseConversation": "Select or start a conversation.",
+    "timeline": "Conversation timeline",
+    "jumpToLatest": "Jump to latest",
     "protocolEncryption": "Signal-protocol encryption",
     "sync": "Sync messages",
     "attention_one": "{{count}} encrypted message needs attention and remains unacknowledged.",
@@ -273,12 +286,21 @@
   },
   "auth": {
     "signIn": "Sign in",
+    "signInDescription": "Use your Kutup account to continue.",
     "email": "Email",
     "password": "Password",
     "forgotPassword": "Forgot password?",
     "noAccount": "No account?",
     "createOne": "Create one",
     "alreadyHaveAccount": "Already have an account?",
+    "protection": {
+      "eyebrow": "Private by construction",
+      "title": "Your workspace stays under your control.",
+      "description": "Files and messages are encrypted on your device before protected content reaches your server.",
+      "device": "Keys are derived on this device",
+      "encrypted": "Content is encrypted before upload",
+      "selfHosted": "Your organization chooses the server"
+    },
     "derivingKeys": "Deriving keys…",
     "decryptingVault": "Decrypting vault…",
     "argon2idNote": "Running Argon2id key derivation (this takes a moment)",
@@ -371,6 +393,15 @@
     }
   },
   "drive": {
+    "searchPlaceholder": "Search this folder…",
+    "searchAria": "Search the current folder",
+    "breadcrumb": "Folder path",
+    "emptyFolderTitle": "This folder is empty",
+    "emptyFolderDescription": "Drop files here or choose Upload files.",
+    "emptyReadOnlyTitle": "No files in this folder",
+    "emptyReadOnlyDescription": "This shared folder is read-only.",
+    "uploadFilesAction": "Upload files",
+    "selectionActions": "Selected item actions",
     "foldersHeader": "Folders",
     "filesHeader": "Files",
     "dropToUpload": "Drop to upload to “{{name}}”",
@@ -381,7 +412,10 @@
     "downloadFiles_other": "Download {{count}} files",
     "downloadFolders_one": "Download folder as ZIP",
     "downloadFolders_other": "Download {{count}} folders as ZIP",
+    "sharedEmptyTitle": "Nothing shared with you",
     "noSharedFolders": "No folders have been shared with you yet.",
+    "searchEmptyTitle": "No matching files",
+    "searchEmptyDescription": "No matches for “{{query}}” in this folder.",
     "uploadFiles": "Upload files",
     "newFolder": "New folder",
     "addRemoteShare": "Add remote share",
@@ -450,6 +484,9 @@
   },
   "folders": {
     "open": "Open",
+    "openNamed": "Open folder {{name}}",
+    "selectNamed": "Select folder {{name}}",
+    "actionsNamed": "Actions for folder {{name}}",
     "details": "Details",
     "rename": "Rename",
     "uploadHere": "Upload here",
@@ -467,6 +504,9 @@
   },
   "files": {
     "name": "Name",
+    "openNamed": "Open file {{name}}",
+    "selectNamed": "Select file {{name}}",
+    "actionsNamed": "Actions for file {{name}}",
     "size": "Size",
     "modified": "Modified",
     "uploaded": "Uploaded",
@@ -491,6 +531,9 @@
     "created": "Created",
     "type": "Type",
     "federatedShare": "Federated share",
+    "folderColor": "Folder color",
+    "setColor": "Set folder color to {{color}}",
+    "defaultColor": "Use default folder color",
     "openFolder": "Open folder",
     "rename": "Rename",
     "share": "Share",
@@ -502,6 +545,8 @@
   },
   "upload": {
     "progress": "Uploading",
+    "progressLabel": "Uploading file {{current}} of {{total}}, {{percent}}% complete",
+    "overallProgress": "Overall upload progress",
     "dropOrClick": "Drop files here or",
     "clickToUpload": "click to upload",
     "readOnly": "This folder is read-only"
@@ -619,6 +664,10 @@
   "admin": {
     "title": "Admin Panel",
     "createUser": "Create user",
+    "page": {
+      "title": "Administration",
+      "description": "Manage people, policies, and storage for this Kutup instance."
+    },
     "sidebar": {
       "drive": "← Drive",
       "adminSection": "Admin",
@@ -774,6 +823,8 @@
     }
   },
   "publicShare": {
+    "title": "Shared with you",
+    "subtitle": "Files in this encrypted link are decrypted only in this browser.",
     "decrypting": "Decrypting…",
     "missingKey": "Missing decryption key — the URL may be incomplete. The key must be in the #fragment.",
     "e2e": "End-to-end encrypted — decrypted in your browser",
@@ -834,6 +885,7 @@
     "back": "Back",
     "cancel": "Cancel",
     "files": {
+      "views": "Files views",
       "subtitle": "{{folders}} folders · {{files}} files",
       "search": {
         "placeholder": "Search in Kutup…",
@@ -842,14 +894,6 @@
       },
       "empty": {
         "subtitle": "Try a different search term"
-      },
-      "chips": {
-        "all": "All",
-        "recent": "Recent",
-        "photos": "Photos",
-        "documents": "Documents",
-        "pdfs": "PDFs",
-        "audio": "Audio"
       }
     },
     "section": {
@@ -899,38 +943,30 @@
     "account": {
       "profile": "Profile",
       "encryptionKeys": "Encryption keys",
-      "encryptionKeys.sub": "Manage your recovery phrase",
+      "encryptionKeys.sub": "Recovery and encryption information",
       "security": "Security",
-      "notifications": "Notifications",
       "language": "Language",
       "about": "About Kutup",
       "admin": "Admin",
       "signOut": "Sign out",
-      "darkMode": "Dark mode",
-      "lightMode": "Light mode",
       "storage": "Storage",
       "storageUsed": "{{used}} used",
       "storageOf": "of {{total}}",
-      "upgrade": "Upgrade",
-      "freePlan": "Free plan",
+      "member": "Member",
       "adminPlan": "Admin",
-      "tagline": "Kutup · End-to-end encrypted drive",
+      "tagline": "Kutup · End-to-end encrypted workspace",
       "profile.note": "Account details are managed by your Kutup server. Contact your admin to change them.",
       "encryptionKeys.heroTitle": "Your keys, your data",
       "encryptionKeys.heroBody": "Files are end-to-end encrypted with keys derived from your password. The 24-word recovery phrase is your only fallback if you forget it.",
-      "encryptionKeys.viewRecovery": "View recovery phrase",
-      "encryptionKeys.viewRecoverySub": "Write down or print the 24 words",
-      "encryptionKeys.rotate": "Rotate recovery phrase",
-      "encryptionKeys.rotateSub": "Generate a new phrase — invalidates the old one",
-      "encryptionKeys.footer": "Kutup never sees your phrase — it stays on this device and the devices you sync it to.",
+      "encryptionKeys.recover": "Recover an account",
+      "encryptionKeys.recoverSub": "Use a saved recovery phrase to restore access",
+      "encryptionKeys.footer": "Kutup cannot display or rotate a saved recovery phrase. Keep your original copy somewhere safe.",
       "security.totp": "Two-factor authentication",
       "security.totpOn": "Enabled",
       "security.totpOff": "Not enabled",
       "security.devices": "Trusted devices",
       "security.devicesSub": "Browser tabs and CLI sessions",
       "security.note": "Full setup (QR code, recovery codes, device revocation) is on the desktop Settings page for now.",
-      "notifications.emptyTitle": "No notifications",
-      "notifications.emptySubtitle": "Activity from shares, mentions, and updates will appear here.",
       "language.selected": "Selected",
       "about.source": "Source code",
       "about.trademark": "Brand policy",

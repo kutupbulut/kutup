@@ -211,7 +211,7 @@ export default function CollectionGrid({
         <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           {t('drive.foldersHeader')}
         </h2>
-        <span className="text-xs font-medium text-muted-foreground">[{collections.length}]</span>
+        <span className="text-xs font-medium text-muted-foreground">{collections.length}</span>
       </header>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -220,70 +220,71 @@ export default function CollectionGrid({
           const card = (
             <div
               className={cn(
-                'group relative flex items-center gap-3 px-3 py-3 rounded-xl border bg-card cursor-pointer select-none transition-colors',
+                'group relative flex items-center rounded-xl border bg-card select-none transition-colors',
                 isSelected
                   ? 'border-primary bg-primary/5'
                   : 'border-border hover:border-primary/50 hover:bg-accent/30',
               )}
-              onClick={() => onEnter(col)}
               onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
               onDrop={(e) => { e.stopPropagation(); onDrop(e, col) }}
             >
-              {/* Selection checkbox */}
-              <div
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onToggleSelect(col.id)}
+                aria-label={t('folders.selectNamed', { name: col.decryptedName ?? '' })}
                 className={cn(
-                  'absolute top-1.5 left-1.5 transition-opacity',
-                  anySelected || isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                  'absolute left-1.5 top-1.5 z-10 h-4 w-4 bg-background/80 backdrop-blur-sm transition-opacity focus:opacity-100',
+                  anySelected || isSelected
+                    ? 'opacity-100'
+                    : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100',
                 )}
-                onClick={(e) => { e.stopPropagation(); onToggleSelect(col.id) }}
+              />
+
+              <button
+                type="button"
+                onClick={() => onEnter(col)}
+                aria-label={t('folders.openNamed', { name: col.decryptedName ?? '' })}
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-3 pr-11 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               >
-                <Checkbox
-                  checked={isSelected}
-                  className="h-4 w-4 bg-background/80 backdrop-blur-sm pointer-events-none"
-                />
-              </div>
+                <span className="shrink-0">
+                  <FolderIcon color={col.color} size={44} />
+                </span>
 
-              {/* Folder icon */}
-              <div className="shrink-0">
-                <FolderIcon color={col.color} size={44} />
-              </div>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium leading-snug">
+                    {col.decryptedName ?? '…'}
+                  </span>
+                  <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {col.isRemote ? (
+                      <>
+                        <Globe className="h-3 w-3" aria-hidden="true" />
+                        <span>{t('folders.badge.remote')}</span>
+                      </>
+                    ) : col.isShared ? (
+                      <>
+                        <Users className="h-3 w-3" aria-hidden="true" />
+                        <span>{t('folders.badge.shared')}</span>
+                      </>
+                    ) : (
+                      <span>{t('folders.badge.folder')}</span>
+                    )}
+                  </span>
+                </span>
+              </button>
 
-              {/* Name + meta */}
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium leading-snug">
-                  {col.decryptedName ?? '…'}
-                </p>
-                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  {col.isRemote ? (
-                    <>
-                      <Globe className="h-3 w-3" />
-                      <span>{t('folders.badge.remote')}</span>
-                    </>
-                  ) : col.isShared ? (
-                    <>
-                      <Users className="h-3 w-3" />
-                      <span>{t('folders.badge.shared')}</span>
-                    </>
-                  ) : (
-                    <span>{t('folders.badge.folder')}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* More menu (3-dot, hover) */}
-              <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute right-2 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
-                      onClick={(e) => e.stopPropagation()}
+                      aria-label={t('folders.actionsNamed', { name: col.decryptedName ?? '' })}
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreVertical className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuContent align="end" className="w-52">
                     <FolderMenuItems
                       col={col}
                       variant="dropdown"

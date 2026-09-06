@@ -32,8 +32,8 @@ import type { ReactNode } from 'react'
 /**
  * MobileAdminUserDetailPage — `/drive/account/admin/users/:id`.
  *
- * Per the design + the user's "tap → full page, never a slide-in" rule.
- * Every action is wired end-to-end (CLAUDE.md "no silent stubs"):
+ * Uses a full page so high-impact administrative actions have stable context.
+ * Every visible action is wired end-to-end:
  *
  *   1. Header card     — avatar + email + role/break-glass pill + status + storage bar
  *   2. Account info    — 2FA / Role / Joined

@@ -63,12 +63,13 @@ function sortFiles(files: DecryptedFile[], key: SortKey, dir: SortDir): Decrypte
   return out
 }
 
-function formatModified(iso: string): string {
+export function formatModified(iso: string, locale?: string): string {
   const d = new Date(iso)
-  const now = new Date()
-  const sameYear = d.getFullYear() === now.getFullYear()
-  const month = d.toLocaleDateString(undefined, { month: 'short' })
-  return sameYear ? `${month} ${d.getDate()}` : `${month} ${d.getDate()}, ${d.getFullYear()}`
+  if (Number.isNaN(d.getTime())) return '—'
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(d)
 }
 
 interface SortableHeadProps {
@@ -83,7 +84,10 @@ interface SortableHeadProps {
 function SortableHead({ label, active, dir, onClick, className, align = 'left' }: SortableHeadProps) {
   const Arrow = dir === 'asc' ? ArrowUp : ArrowDown
   return (
-    <TableHead className={className}>
+    <TableHead
+      className={className}
+      aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
       <button
         type="button"
         onClick={onClick}
@@ -151,16 +155,10 @@ export default function FileTable({
         <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           {t('drive.filesHeader')}
         </h2>
-        <span className="text-xs font-medium text-muted-foreground">[{files.length}]</span>
+        <span className="text-xs font-medium text-muted-foreground">{files.length}</span>
       </header>
 
-      {/* Card surround — mirrors the design's
-          { background: var(--surface); border-radius: var(--radius-lg);
-            border: 1px solid var(--border-light); overflow: hidden; }
-          on the desktop Files table. The folder cards already get this
-          rounded-card look from CollectionGrid; this brings the files
-          section to the same visual treatment. */}
-      <div className="rounded-lg border border-border-light bg-surface overflow-hidden">
+      <div className="overflow-hidden rounded-lg border border-border-light bg-surface">
       <Table>
         <TableHeader>
           <TableRow>
@@ -184,7 +182,7 @@ export default function FileTable({
               active={sortKey === 'modified'}
               dir={sortDir}
               onClick={() => toggleSort('modified')}
-              className="w-32"
+              className="w-48"
             />
             <SortableHead
               label={t('files.size')}
@@ -207,24 +205,33 @@ export default function FileTable({
                     onClick={() => onSelect(file)}
                   >
                     <TableCell
-                      className="cursor-pointer"
-                      onClick={(e) => { e.stopPropagation(); onToggleSelect(file.id) }}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <Checkbox
                         checked={isSelected}
-                        className="h-5 w-5 pointer-events-none"
+                        onCheckedChange={() => onToggleSelect(file.id)}
+                        aria-label={t('files.selectNamed', { name: file.decryptedName ?? '' })}
+                        className="h-5 w-5"
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-3 min-w-0">
+                      <button
+                        type="button"
+                        className="flex min-w-0 items-center gap-3 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        aria-label={t('files.openNamed', { name: file.decryptedName ?? '' })}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onSelect(file)
+                        }}
+                      >
                         <FileIcon filename={file.decryptedName ?? 'file'} size="sm" />
                         <span className="truncate">
                           {file.decryptedName ?? '[encrypted]'}
                         </span>
-                      </div>
+                      </button>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatModified(file.createdAt)}
+                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                      <time dateTime={file.createdAt}>{formatModified(file.createdAt)}</time>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {file.decryptedSize ? formatBytes(file.decryptedSize) : '—'}
@@ -235,9 +242,10 @@ export default function FileTable({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                            aria-label={t('files.actionsNamed', { name: file.decryptedName ?? '' })}
                           >
-                            <MoreVertical className="h-4 w-4" />
+                            <MoreVertical className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">

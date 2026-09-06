@@ -23,27 +23,21 @@ import { cn } from '@/lib/utils'
  * MobileFilesPage — direct port of the design's Files screen.
  *
  * Renders the existing Drive data (folders + files at the current level) with
- * the design's visual language: large title, storage card on root, category
- * chips, 2-col folder grid + file list, search slide-in, and a FAB-in-header
- * that opens an "Add to Kutup" bottom sheet.
+ * the design's visual language: large title, storage card on root, 2-col
+ * folder grid + file list, search slide-in, and an "Add to Kutup" sheet.
  *
  * Driven by props from `Drive.tsx` so its rich state (selection, breadcrumb
  * stack, upload pipeline, dialogs) stays the source of truth — no data
- * duplication. PR 2 ships the visuals + a working FAB sheet that delegates to
- * the existing dialog handlers; the chip filters are visual-only and get
- * wired in PR 3.
+ * duplication. Every exposed action delegates to an existing Drive flow.
  */
 
 interface MobileFilesPageProps {
   folders: Collection[]
   files: DecryptedFile[]
   currentFolder: Collection | null
-  /** True when `currentFolder` is the user's root "My Files" collection (or
-   *  unset). Drives the large-title pattern + suppresses the Back button at
-   *  the top level. In kutup the root Collection is non-null (unlike the
-   *  design prototype), so this must be derived in `Drive.tsx` rather than
-   *  inferred from `currentFolder == null`. */
+  /** True at the root of the active My files or Shared with me view. */
   isAtRoot: boolean
+  viewMode: 'myfiles' | 'shared'
   /** Total bytes used by this user. */
   usedBytes: number
   /** Storage quota in bytes. */
@@ -51,6 +45,8 @@ interface MobileFilesPageProps {
   onOpenFolder: (folder: Collection) => void
   onOpenFile: (file: DecryptedFile) => void
   onBack: () => void
+  onViewModeChange: (view: 'myfiles' | 'shared') => void
+  onOpenTrash: () => void
   /** Show item-action sheet for a folder or file. */
   onItemMore: (item: Collection | DecryptedFile) => void
   /** Add-sheet actions. */
@@ -59,18 +55,10 @@ interface MobileFilesPageProps {
   onNewFolder: () => void
   onNewNote: () => void
   onNewWhiteboard: () => void
-  /** Optional remote-share intake (PR 3+: paste encrypted link). */
+  canCreate: boolean
+  /** Optional remote-share intake. */
   onPasteEncryptedLink?: () => void
 }
-
-const CHIPS = [
-  { id: 'all', key: 'mobile.files.chips.all' as const, fallback: 'All' },
-  { id: 'recent', key: 'mobile.files.chips.recent' as const, fallback: 'Recent' },
-  { id: 'photos', key: 'mobile.files.chips.photos' as const, fallback: 'Photos' },
-  { id: 'documents', key: 'mobile.files.chips.documents' as const, fallback: 'Documents' },
-  { id: 'pdfs', key: 'mobile.files.chips.pdfs' as const, fallback: 'PDFs' },
-  { id: 'audio', key: 'mobile.files.chips.audio' as const, fallback: 'Audio' },
-] as const
 
 export function MobileFilesPage(props: MobileFilesPageProps) {
   const {
@@ -78,17 +66,21 @@ export function MobileFilesPage(props: MobileFilesPageProps) {
     files,
     currentFolder,
     isAtRoot,
+    viewMode,
     usedBytes,
     quotaBytes,
     onOpenFolder,
     onOpenFile,
     onBack,
+    onViewModeChange,
+    onOpenTrash,
     onItemMore,
     onUploadFiles,
     onUploadFolder,
     onNewFolder,
     onNewNote,
     onNewWhiteboard,
+    canCreate,
     onPasteEncryptedLink,
   } = props
   const { t } = useTranslation()
@@ -96,7 +88,6 @@ export function MobileFilesPage(props: MobileFilesPageProps) {
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
-  const [activeChip, setActiveChip] = useState<typeof CHIPS[number]['id']>('all')
 
   const filteredFolders = useMemo(() => {
     if (!search) return folders
@@ -113,8 +104,6 @@ export function MobileFilesPage(props: MobileFilesPageProps) {
   const isEmpty = filteredFolders.length === 0 && filteredFiles.length === 0
   const showLargeTitle = isAtRoot && !searchOpen
 
-  // At root we show the section label ("My Files"); inside a sub-folder we
-  // show the folder's decrypted name.
   const titleText = isAtRoot
     ? t('nav.files', 'Files')
     : currentFolder?.decryptedName ?? ''
@@ -141,12 +130,14 @@ export function MobileFilesPage(props: MobileFilesPageProps) {
                 onClick={() => setSearchOpen(true)}
                 ariaLabel={t('mobile.files.search.placeholder', 'Search in Kutup…')}
               />
-              <IconButton
-                icon="plus"
-                onClick={() => setAddOpen(true)}
-                accent
-                ariaLabel={t('mobile.sheet.add.title', 'Add to Kutup')}
-              />
+              {canCreate && (
+                <IconButton
+                  icon="plus"
+                  onClick={() => setAddOpen(true)}
+                  accent
+                  ariaLabel={t('mobile.sheet.add.title', 'Add to Kutup')}
+                />
+              )}
             </>
           )
         }
@@ -166,31 +157,51 @@ export function MobileFilesPage(props: MobileFilesPageProps) {
 
       <div className="flex-1 overflow-auto px-3.5 pt-3 pb-24">
         {isAtRoot && !searchOpen && (
-          <div className="mb-4">
-            <StorageCard used={usedBytes} quota={quotaBytes} />
+          <div
+            role="group"
+            aria-label={t('mobile.files.views', 'Files views')}
+            className="mb-4 flex items-center gap-1 rounded-xl bg-muted/70 p-1"
+          >
+            <button
+              type="button"
+              aria-pressed={viewMode === 'myfiles'}
+              onClick={() => onViewModeChange('myfiles')}
+              className={cn(
+                'min-h-9 flex-1 rounded-lg px-3 text-sm font-medium transition-colors',
+                viewMode === 'myfiles'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {t('nav.myFiles')}
+            </button>
+            <button
+              type="button"
+              aria-pressed={viewMode === 'shared'}
+              onClick={() => onViewModeChange('shared')}
+              className={cn(
+                'min-h-9 flex-1 rounded-lg px-3 text-sm font-medium transition-colors',
+                viewMode === 'shared'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {t('nav.sharedWithMe')}
+            </button>
+            <button
+              type="button"
+              onClick={onOpenTrash}
+              aria-label={t('nav.trash')}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-background hover:text-foreground"
+            >
+              <Icon d={ICONS.trash} size={16} />
+            </button>
           </div>
         )}
 
-        {isAtRoot && !searchOpen && (
-          <div className="-mx-3.5 px-3.5 mb-4 flex gap-2 overflow-x-auto pb-1">
-            {CHIPS.map((c) => {
-              const active = activeChip === c.id
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setActiveChip(c.id)}
-                  className={cn(
-                    'shrink-0 px-3.5 py-1.5 rounded-2xl text-[12.5px] font-medium cursor-pointer border transition-colors',
-                    active
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-surface text-text-secondary border-border hover:bg-surface-raised',
-                  )}
-                >
-                  {t(c.key, c.fallback)}
-                </button>
-              )
-            })}
+        {isAtRoot && viewMode === 'myfiles' && !searchOpen && (
+          <div className="mb-4">
+            <StorageCard used={usedBytes} quota={quotaBytes} />
           </div>
         )}
 
@@ -199,6 +210,19 @@ export function MobileFilesPage(props: MobileFilesPageProps) {
             icon="search"
             title={t('mobile.files.search.empty', 'No results for "{{q}}"', { q: search })}
             subtitle={t('mobile.files.empty.subtitle', 'Try a different search term')}
+            tint="muted"
+          />
+        )}
+
+        {isEmpty && !search && (
+          <EmptyState
+            icon={viewMode === 'shared' ? 'users' : 'folder'}
+            title={viewMode === 'shared'
+              ? t('mobile.shared.empty.title', 'Nothing shared yet')
+              : t(canCreate ? 'drive.emptyFolderTitle' : 'drive.emptyReadOnlyTitle')}
+            subtitle={viewMode === 'shared'
+              ? t('drive.noSharedFolders')
+              : t(canCreate ? 'drive.emptyFolderDescription' : 'drive.emptyReadOnlyDescription')}
             tint="muted"
           />
         )}
@@ -243,7 +267,7 @@ export function MobileFilesPage(props: MobileFilesPageProps) {
 
       {/* Add sheet (FAB-in-header) */}
       <BottomSheet
-        open={addOpen}
+        open={canCreate && addOpen}
         onOpenChange={setAddOpen}
         title={t('mobile.sheet.add.title', 'Add to Kutup')}
       >
@@ -316,30 +340,30 @@ function FolderTile({
   onOpen: (f: Collection) => void
   onMore: (f: Collection) => void
 }) {
+  const { t } = useTranslation()
   const [pressed, setPressed] = useState(false)
+  const name = folder.decryptedName ?? '...'
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(folder)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onOpen(folder)
-        }
-      }}
-      onTouchStart={() => setPressed(true)}
-      onTouchEnd={() => setPressed(false)}
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
-      onMouseLeave={() => setPressed(false)}
       className={cn(
         'relative p-3 border border-border-light rounded-[var(--radius-lg)]',
-        'cursor-pointer select-none transition-colors flex flex-col gap-2',
+        'select-none transition-colors flex flex-col gap-2',
         pressed ? 'bg-surface-raised' : 'bg-surface',
       )}
     >
-      <div className="flex items-start justify-between">
+      <button
+        type="button"
+        onClick={() => onOpen(folder)}
+        onTouchStart={() => setPressed(true)}
+        onTouchEnd={() => setPressed(false)}
+        onTouchCancel={() => setPressed(false)}
+        onMouseDown={() => setPressed(true)}
+        onMouseUp={() => setPressed(false)}
+        onMouseLeave={() => setPressed(false)}
+        aria-label={t('folders.openNamed', { name })}
+        className="absolute inset-0 z-0 cursor-pointer rounded-[var(--radius-lg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      />
+      <div className="pointer-events-none relative z-[1] flex items-start justify-between">
         <FolderSVG color={folder.color as FolderColorName} size={40} />
         <button
           type="button"
@@ -348,17 +372,17 @@ function FolderTile({
             onMore(folder)
           }}
           aria-label="More actions"
-          className="w-7 h-7 rounded-[14px] border-0 bg-transparent cursor-pointer text-text-tertiary flex items-center justify-center -mr-1 -mt-1"
+          className="pointer-events-auto relative z-10 w-7 h-7 rounded-[14px] border-0 bg-transparent cursor-pointer text-text-tertiary flex items-center justify-center -mr-1 -mt-1"
         >
           <Icon d={ICONS.more} size={16} />
         </button>
       </div>
-      <div className="min-w-0">
+      <div className="pointer-events-none relative z-[1] min-w-0">
         <div className="text-[13.5px] font-semibold text-text-primary flex items-center gap-1 truncate">
           {folder.isRemote && (
             <Icon d={ICONS.globe} size={11} color="var(--primary)" style={{ flexShrink: 0 }} />
           )}
-          <span className="truncate">{folder.decryptedName ?? '...'}</span>
+          <span className="truncate">{name}</span>
         </div>
         <div className="text-[11.5px] text-text-tertiary mt-0.5 flex items-center gap-1">
           {folder.isShared && <Icon d={ICONS.users} size={10} />}
@@ -380,12 +404,22 @@ function FileListRow({
   onMore: (f: DecryptedFile) => void
   last: boolean
 }) {
+  const { t } = useTranslation()
+  const name = file.decryptedName ?? '—'
   return (
-    <PressableRow onClick={() => onOpen(file)} last={last} ariaLabel={file.decryptedName ?? ''}>
-      <FileTypeIcon mime={file.decryptedMimeType} size={40} />
-      <div className="flex-1 min-w-0">
+    <PressableRow last={last} className="relative">
+      <button
+        type="button"
+        onClick={() => onOpen(file)}
+        aria-label={t('files.openNamed', { name })}
+        className="absolute inset-0 z-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      />
+      <span className="pointer-events-none relative z-[1]">
+        <FileTypeIcon mime={file.decryptedMimeType} size={40} />
+      </span>
+      <div className="pointer-events-none relative z-[1] flex-1 min-w-0">
         <div className="text-sm font-medium text-text-primary truncate">
-          {file.decryptedName ?? '—'}
+          {name}
         </div>
         <div className="text-[12px] text-text-tertiary mt-0.5">
           {formatDateShort(file.createdAt)} · {formatBytes(file.decryptedSize ?? 0)}
@@ -398,7 +432,7 @@ function FileListRow({
           onMore(file)
         }}
         aria-label="More actions"
-        className="w-8 h-8 rounded-2xl border-0 bg-transparent cursor-pointer text-text-tertiary flex items-center justify-center"
+        className="relative z-10 w-8 h-8 rounded-2xl border-0 bg-transparent cursor-pointer text-text-tertiary flex items-center justify-center"
       >
         <Icon d={ICONS.more} size={16} />
       </button>

@@ -260,6 +260,7 @@ For the full picture (key hierarchy, login flow, federation model, storage layer
 | OnlyOffice integration & CryptPad-pinned bundle | [docs/onlyoffice.md](docs/onlyoffice.md) |
 | REST API reference | [docs/api.md](docs/api.md) |
 | Local dev setup, code conventions, project structure | [docs/contributing.md](docs/contributing.md) |
+| Web UI architecture, theme system, and responsive rules | [docs/frontend.md](docs/frontend.md) |
 | Documentation map and document-status conventions | [docs/README.md](docs/README.md) |
 | Machine-readable OpenAPI document | `/api-docs/openapi.json` on a running stack (interactive Swagger UI is not bundled) |
 

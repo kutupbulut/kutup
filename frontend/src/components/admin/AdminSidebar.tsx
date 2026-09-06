@@ -9,35 +9,19 @@ import { broadcastLogout } from '@/lib/sessionSync'
 import * as sessionVault from '@/lib/sessionVault'
 import { cn } from '@/lib/utils'
 
-/**
- * AdminSidebar — left rail for the desktop `/admin` page.
- *
- * Different chrome from the Drive Sidebar on purpose: admin is its own
- * surface (a different kind of page), so the design ships a dedicated
- * sidebar that just has a "← Drive" escape hatch + the three admin tabs
- * + the user card at the bottom. Reuses kutup's existing auth/logout/theme
- * plumbing (`useAppSelector`, `dispatch(logout())`, `useTheme`,
- * `broadcastLogout`, `sessionVault.clear`) so behavior matches the rest
- * of the app exactly.
- *
- * Distinct from the Drive Sidebar (`components/layout/Sidebar.tsx`):
- *  - No Drive state (`viewMode`, callbacks). Just a tab string.
- *  - Drive nav rows collapse into a single "← Drive" row at the top.
- *  - 2FA reminder card only shows if the admin hasn't enabled TOTP yet.
- */
-
+/** Dedicated desktop navigation for the administration surface. */
 export type AdminTab = 'overview' | 'users' | 'settings'
 
 interface AdminSidebarProps {
   tab: AdminTab
-  onTab: (t: AdminTab) => void
+  onTab: (tab: AdminTab) => void
 }
 
 export function AdminSidebar({ tab, onTab }: AdminSidebarProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
-  const auth = useAppSelector((s) => s.auth)
+  const auth = useAppSelector((state) => state.auth)
   const [theme, toggleTheme] = useTheme()
   const isDark = theme === 'dark'
 
@@ -50,25 +34,24 @@ export function AdminSidebar({ tab, onTab }: AdminSidebarProps) {
     try {
       await sessionVault.clear()
     } catch {
-      // best-effort; logout proceeds regardless
+      // Session storage cleanup is best-effort; local logout must still finish.
     }
     dispatch(logout())
     navigate('/login')
   }
 
   return (
-    <aside className="w-[220px] h-screen bg-surface-sunken border-r border-border flex flex-col shrink-0 sticky top-0">
-      {/* Logo */}
-      <div className="flex items-center gap-2 px-4 pt-4 pb-3">
+    <aside
+      className="sticky top-0 flex h-screen w-[220px] shrink-0 flex-col border-r border-border bg-surface-sunken"
+      aria-label={t('admin.page.title', 'Administration')}
+    >
+      <div className="flex items-center gap-2 px-4 pb-3 pt-4">
         <KutupLogo size={26} />
-        <span className="text-[17px] font-bold text-primary tracking-[-0.3px]">
-          Kutup
-        </span>
+        <span className="text-[17px] font-bold tracking-[-0.3px] text-primary">Kutup</span>
       </div>
-      <div className="h-px bg-border-light mx-3 mb-2" />
+      <div className="mx-3 mb-2 h-px bg-border-light" />
 
-      {/* Back to Drive */}
-      <nav className="px-2 flex flex-col gap-0.5">
+      <nav className="flex flex-col gap-0.5 px-2" aria-label={t('navigation.workspace', 'Workspace')}>
         <NavRow
           icon="folder"
           label={t('admin.sidebar.drive', '← Drive')}
@@ -76,9 +59,11 @@ export function AdminSidebar({ tab, onTab }: AdminSidebarProps) {
         />
       </nav>
 
-      {/* Admin tabs */}
-      <div className="pt-3.5 pb-1.5 px-2">
-        <div className="px-2 pb-1.5 text-[10.5px] font-semibold tracking-[0.08em] uppercase text-text-tertiary">
+      <nav
+        className="px-2 pb-1.5 pt-3.5"
+        aria-label={t('admin.sidebar.adminSection', 'Admin')}
+      >
+        <div className="px-2 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
           {t('admin.sidebar.adminSection', 'Admin')}
         </div>
         <div className="flex flex-col gap-0.5">
@@ -101,30 +86,29 @@ export function AdminSidebar({ tab, onTab }: AdminSidebarProps) {
             onClick={() => onTab('settings')}
           />
         </div>
-      </div>
+      </nav>
 
       <div className="flex-1" />
 
-      {/* TOTP reminder — only when not enabled */}
       <div className="px-2">
         {!auth.totpEnabled && (
           <button
+            type="button"
             onClick={() => navigate('/drive/account/security/totp-setup')}
-            className="w-full text-left px-3 py-2.5 bg-primary-faint border border-border-light rounded-[var(--radius)] flex items-center gap-2.5 mb-2 cursor-pointer hover:bg-primary-faint/80 transition-colors"
+            className="mb-2 flex w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius)] border border-border-light bg-primary-faint px-3 py-2.5 text-left transition-colors hover:bg-primary-faint/80"
           >
             <Icon d={ICONS.shield} size={16} color="var(--primary)" />
             <div className="min-w-0">
-              <div className="text-[11.5px] font-semibold text-primary truncate">
+              <div className="truncate text-[11.5px] font-semibold text-primary">
                 {t('admin.sidebar.signedInAs', 'Signed in as admin')}
               </div>
-              <div className="text-[10.5px] text-text-tertiary mt-px truncate">
+              <div className="mt-px truncate text-[10.5px] text-text-tertiary">
                 {t('admin.sidebar.totpOff', '2FA off · enable now')}
               </div>
             </div>
           </button>
         )}
 
-        {/* Sign out + dark-mode toggle row */}
         <div className="flex items-center">
           <div className="flex-1">
             <NavRow
@@ -134,31 +118,27 @@ export function AdminSidebar({ tab, onTab }: AdminSidebarProps) {
             />
           </div>
           <button
+            type="button"
             onClick={() => toggleTheme()}
             title={
               isDark
                 ? t('mobile.account.lightMode', 'Light mode')
                 : t('mobile.account.darkMode', 'Dark mode')
             }
-            className="w-8 h-8 rounded-[var(--radius)] border-0 bg-transparent cursor-pointer flex items-center justify-center text-text-tertiary shrink-0 mr-1 hover:bg-border-light hover:text-text-primary transition-colors"
+            className="mr-1 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[var(--radius)] border-0 bg-transparent text-text-tertiary transition-colors hover:bg-border-light hover:text-text-primary"
           >
             <Icon d={isDark ? ICONS.sun : ICONS.moon} size={15} />
           </button>
         </div>
 
-        {/* User card */}
-        <div className="px-2 pb-3.5 pt-1.5 flex items-center gap-1.5">
-          <div className="w-[26px] h-[26px] rounded-full bg-primary text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+        <div className="flex items-center gap-1.5 px-2 pb-3.5 pt-1.5">
+          <div className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white">
             {initial}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[12.5px] font-medium text-text-primary truncate">
-              {username}
-            </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[12.5px] font-medium text-text-primary">{username}</div>
             {email && username !== email && (
-              <div className="text-[11px] text-text-tertiary truncate">
-                {email}
-              </div>
+              <div className="truncate text-[11px] text-text-tertiary">{email}</div>
             )}
           </div>
         </div>
@@ -167,24 +147,23 @@ export function AdminSidebar({ tab, onTab }: AdminSidebarProps) {
   )
 }
 
-/* ── NavRow primitive ───────────────────────────────────────────────── */
-
 interface NavRowProps {
   icon: IconName
   label: string
   active?: boolean
-  onClick?: () => void
+  onClick?: () => void | Promise<void>
 }
 
 function NavRow({ icon, label, active, onClick }: NavRowProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       className={cn(
-        'flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-[var(--radius)] border-0 cursor-pointer text-left transition-colors',
-        'text-[13.5px]',
+        'flex w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius)] border-0 px-2.5 py-1.5 text-left text-[13.5px] transition-colors',
         active
-          ? 'bg-primary-light text-primary font-semibold'
+          ? 'bg-primary-light font-semibold text-primary'
           : 'bg-transparent text-text-secondary hover:bg-border-light hover:text-text-primary',
       )}
     >

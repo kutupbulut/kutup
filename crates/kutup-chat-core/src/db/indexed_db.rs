@@ -902,6 +902,7 @@ mod tests {
             SentMessage {
                 send_id: "sent-1".into(),
                 peer: "alice".into(),
+                sender_device_id: 1,
                 content: vec![17],
                 created_at: 99,
                 delivered_at: Some(103),

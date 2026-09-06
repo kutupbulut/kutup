@@ -23,7 +23,7 @@ npx --prefix tests/e2e playwright install chromium
 
 CI uses `playwright install --with-deps chromium` on a fresh Ubuntu runner.
 
-## Start the single-server stack
+## Start an isolated single-server stack
 
 The checked-in Nginx requires a certificate. For local testing only:
 
@@ -32,14 +32,23 @@ mkdir -p nginx/certs
 openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
   -keyout nginx/certs/privkey.pem -out nginx/certs/fullchain.pem \
   -subj /CN=localhost -addext subjectAltName=DNS:localhost,IP:127.0.0.1
+export COMPOSE_PROJECT_NAME=kutup-e2e
+export COMPOSE_FILE=docker-compose.yml:tests/e2e/docker-compose.isolated.yml
+export KUTUP_E2E_DATA_DIR=/tmp/kutup-e2e-data
+export KUTUP_HTTP_PORT=39080
+export KUTUP_HTTPS_PORT=39443
+export E2E_BASE_URL=https://localhost:39443
 docker compose up --detach --build --wait
-curl --fail --insecure https://localhost:38443/api/auth/settings
+curl --fail --insecure "$E2E_BASE_URL/api/auth/settings"
 ```
 
 The Nginx health check and bounded `curl` probe are the readiness boundary. Do
 not replace them with a fixed sleep. The frontend image bakes the production
 bundle and generated WASM, so rebuild it after frontend, Chat-core, or crypto
-changes.
+changes. The override redirects SeaweedFS bind mounts away from repository data;
+the Compose project name separately isolates named volumes and containers, and
+the alternate host ports allow the test stack to coexist with a development
+stack using the defaults.
 
 ## Run
 
@@ -49,13 +58,15 @@ From `tests/e2e`:
 npm exec -- playwright test                         # all single-stack specs
 npm exec -- playwright test specs/03-office-saveChanges.spec.ts
 npm exec -- playwright test specs/33-chat-history-recovery.spec.ts --project=chromium
+npm exec -- playwright test specs/35-polar-workspace-accessibility.spec.ts --project=chromium
 npm exec -- playwright test --headed
 ```
 
 Specs that need a clean database call `wipeStack()` from `fixtures/stack.ts`.
 It performs a Compose teardown with volumes and bind-mount cleanup, then boots a
-fresh break-glass account. Do not run a destructive reset against a development
-stack containing data you want to keep.
+fresh break-glass account. The fixture refuses to reset storage unless
+`KUTUP_E2E_DATA_DIR` is explicitly set. Keep the isolated Compose variables in
+the shell that launches Playwright so resets target only disposable test data.
 
 Normal local runs write the HTML report to `playwright-report/` and per-test
 artifacts to `test-results/`; both are ignored by Git.
@@ -133,3 +144,4 @@ reproduce locally; do not enable secret-bearing raw artifacts.
 - spec 33: single-server automatic clean-browser Chat backup recovery and
   focused protected/unavailable media.
 - spec 34: complete two-server browser-loss recovery matrix.
+- spec 35: Polar Workspace responsive-state and serious/critical axe gate.

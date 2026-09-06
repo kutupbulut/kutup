@@ -35,6 +35,23 @@ export default class SafeReporter implements Reporter {
     )
   }
 
+  onStdOut(chunk: string | Buffer): void {
+    for (const line of chunk.toString().split(/\r?\n/)) {
+      if (
+        process.env.KUTUP_E2E_AXE_DIAGNOSTICS === '1'
+        && line.startsWith('AXE DIAGNOSTIC ')
+      ) console.log(line)
+      if (
+        process.env.KUTUP_E2E_COLLAB_DIAGNOSTICS === '1'
+        && line.startsWith('COLLAB DIAGNOSTIC ')
+      ) console.log(line)
+      if (
+        process.env.KUTUP_E2E_CHAT_DIAGNOSTICS === '1'
+        && line.startsWith('CHAT DIAGNOSTIC ')
+      ) console.log(line)
+    }
+  }
+
   onEnd(result: FullResult): void {
     // Playwright writes an error-context file even with trace/video/screenshot
     // disabled. It is useful locally but can contain application text, so the

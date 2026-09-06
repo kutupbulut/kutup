@@ -7,7 +7,7 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 
 /**
  * Shared chrome for every mobile Account sub-page (Profile / Encryption
- * keys / Security / Notifications / Language / Admin / About).
+ * keys / Security / Language / Admin / About).
  *
  * Each sub-page wraps its body content in this — title + Back button + safe-
  * area-aware shell + bottom-nav. Desktop redirects to `/settings` (the

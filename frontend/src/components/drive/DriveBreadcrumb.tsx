@@ -29,7 +29,10 @@ export default function DriveBreadcrumb({
     (viewMode === 'myfiles' && currentFolder.id === myFilesCollection?.id)
 
   return (
-    <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-4 flex-wrap">
+    <nav
+      aria-label={t('drive.breadcrumb')}
+      className="mb-4 flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
+    >
       <Button
         variant="ghost"
         size="sm"
@@ -56,7 +59,9 @@ export default function DriveBreadcrumb({
       {!isAtRoot && currentFolder && (
         <span className="flex items-center gap-1">
           <ChevronRight className="h-3.5 w-3.5" />
-          <span className="px-2 text-foreground font-medium">{currentFolder.decryptedName}</span>
+          <span aria-current="page" className="px-2 font-medium text-foreground">
+            {currentFolder.decryptedName}
+          </span>
         </span>
       )}
     </nav>

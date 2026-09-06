@@ -7,9 +7,8 @@ import { cn } from '@/lib/utils'
  * Header row: icon tile (filled with `primary-faint` if `accent`) on the
  * left, optional delta badge on the right. Body: large value + small label.
  *
- * Delta badge is intentionally optional. Kutup's `/admin/stats` endpoint
- * doesn't return historical deltas yet, so PR 12 renders the cards without
- * deltas; the prop is kept for the future when an endpoint exists.
+ * Delta badge is intentionally optional because `/admin/stats` does not
+ * currently return historical comparisons.
  */
 interface KpiCardProps {
   icon: IconName

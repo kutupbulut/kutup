@@ -16,7 +16,7 @@ import type { AdminStats, UserRow } from '@/types/api'
  * AdminOverviewTab — KPI grid + EncryptionBanner + Top-users table + the
  * Recent-activity feed (the admin audit log via `GET /admin/activity`).
  *
- * Honest cut vs the design's prototype: kutup has no historical-stats
+ * Kutup has no historical-stats
  * endpoint, so no "+N this week" delta pills. No system-status card (no
  * backend endpoints for uptime / TLS / public URL — mobile admin made the
  * same call).
@@ -65,7 +65,7 @@ export function AdminOverviewTab({
   const { data: activity, isLoading: activityLoading } = useAdminActivity(8)
 
   return (
-    <div className="px-8 py-6">
+    <div>
       {/* KPI grid */}
       {statsLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 mb-6">

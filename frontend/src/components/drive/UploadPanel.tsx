@@ -12,18 +12,31 @@ export default function UploadPanel({ state }: Props) {
   if (!state.active) return null
 
   return (
-    <div className="fixed bottom-24 right-8 w-60 bg-card border border-border rounded-xl p-3 shadow-2xl z-50">
-      <p className="text-xs text-muted-foreground mb-2">
+    <section
+      role="status"
+      aria-live="polite"
+      aria-label={t('upload.progressLabel', {
+        current: state.currentFile,
+        total: state.totalFiles,
+        percent: state.overallPercent,
+      })}
+      className="fixed bottom-24 right-3 z-40 w-[min(18rem,calc(100vw-1.5rem))] rounded-xl border border-border bg-popover/95 p-4 shadow-xl backdrop-blur md:bottom-6 md:right-6"
+    >
+      <p className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
         {t('upload.progress')}{' '}
-        <span className="text-foreground">
+        <span className="font-medium text-foreground">
           {state.currentFile} / {state.totalFiles}
         </span>
       </p>
-      <Progress value={state.overallPercent} className="h-1.5 mb-2" />
+      <Progress
+        value={state.overallPercent}
+        aria-label={t('upload.overallProgress')}
+        className="mb-2 h-1.5"
+      />
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>{state.overallPercent}%</span>
         <span>{formatSpeed(state.speedBps)}</span>
       </div>
-    </div>
+    </section>
   )
 }

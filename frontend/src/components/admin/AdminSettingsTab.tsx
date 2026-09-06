@@ -64,7 +64,7 @@ export function AdminSettingsTab() {
   const over = pct > 75
 
   return (
-    <div className="px-8 py-6 max-w-[800px]">
+    <div className="max-w-[800px]">
       {/* Registration */}
       <SettingsCard
         title={t('admin.settings.registrationTitle', 'Registration')}

@@ -36,7 +36,7 @@ export default function StatusBar({
       </span>
       {collaborators > 0 && (
         <span className="ml-auto flex items-center gap-1.5">
-          <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+          <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full bg-primary" />
           {t('notes.statusBar.collaborators', {
             count: collaborators,
             defaultValue: '{{count}} collaborators',

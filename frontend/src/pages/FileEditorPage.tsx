@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Loader2, ArrowLeft, Download, Save, Check, History, X, BookmarkPlus, Sun, Moon } from 'lucide-react'
+import { Loader2, ArrowLeft, Download, Save, Check, History, X, BookmarkPlus, Sun, Moon, Monitor } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAppDispatch, useAppSelector } from '@/store'
 import { setColor } from '@/store/authSlice'
@@ -32,24 +32,56 @@ import { Button } from '@/components/ui/button'
 import { KutupLogo } from '@/components/KutupLogo'
 import { HelpCircle } from 'lucide-react'
 import EditorShortcutsDialog from '@/components/editors/EditorShortcutsDialog'
-import { useTheme } from '@/hooks/useTheme'
+import { useThemePreference } from '@/hooks/useTheme'
+import type { ThemePreference } from '@/lib/theme'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { isTauri } from '@/lib/isTauri'
 
-function ThemeToggleButton() {
+const EDITOR_THEME_OPTIONS: Array<{
+  value: ThemePreference
+  labelKey: 'theme.light' | 'theme.dark' | 'theme.system'
+  icon: typeof Sun
+}> = [
+  { value: 'light', labelKey: 'theme.light', icon: Sun },
+  { value: 'dark', labelKey: 'theme.dark', icon: Moon },
+  { value: 'system', labelKey: 'theme.system', icon: Monitor },
+]
+
+function ThemeMenuButton() {
   const { t } = useTranslation()
-  const [theme, toggle] = useTheme()
+  const [preference, setPreference] = useThemePreference()
+  const current = EDITOR_THEME_OPTIONS.find((option) => option.value === preference) ?? EDITOR_THEME_OPTIONS[2]
+  const CurrentIcon = current.icon
+
   return (
-    <Button
-      type="button"
-      size="icon"
-      variant="ghost"
-      onClick={() => toggle()}
-      title={theme === 'dark' ? t('nav.switchToLight') : t('nav.switchToDark')}
-      aria-label={theme === 'dark' ? t('nav.switchToLight') : t('nav.switchToDark')}
-      className="h-8 w-8 text-muted-foreground hover:text-foreground"
-    >
-      {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          title={`${t('theme.label')}: ${t(current.labelKey)}`}
+          aria-label={`${t('theme.label')}: ${t(current.labelKey)}`}
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+        >
+          <CurrentIcon className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {EDITOR_THEME_OPTIONS.map(({ value, labelKey, icon: Icon }) => (
+          <DropdownMenuItem key={value} onClick={() => setPreference(value)} className="gap-2">
+            <Icon className="h-4 w-4" />
+            <span className="flex-1">{t(labelKey)}</span>
+            <Check className={preference === value ? 'h-4 w-4 opacity-100' : 'h-4 w-4 opacity-0'} />
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -473,8 +505,8 @@ export default function FileEditorPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border px-4">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border-light bg-surface/95 px-2 backdrop-blur-xl sm:gap-3 sm:px-4">
         {/* Kutup logo: in a browser opens Drive in a NEW tab (Google-Docs
             style: this tab IS the document, you exit by closing it). In the
             Tauri shell new tabs are blocked / routed to the system browser,
@@ -489,7 +521,7 @@ export default function FileEditorPage() {
             aria-label="Back to Kutup Drive"
           >
             <KutupLogo size={22} />
-            <span className="text-sm font-semibold tracking-tight">Kutup</span>
+            <span className="hidden text-sm font-semibold tracking-tight sm:inline">Kutup</span>
           </button>
         ) : (
           <a
@@ -500,10 +532,10 @@ export default function FileEditorPage() {
             title="Open Kutup Drive (new tab)"
           >
             <KutupLogo size={22} />
-            <span className="text-sm font-semibold tracking-tight">Kutup</span>
+            <span className="hidden text-sm font-semibold tracking-tight sm:inline">Kutup</span>
           </a>
         )}
-        <span className="text-sm text-muted-foreground">·</span>
+        <span className="hidden text-sm text-muted-foreground sm:inline">·</span>
         <EditableFilename filename={filename} onCommit={handleRename} />
         {/* Notes shortcut help — only for markdown files. Office +
             whiteboard editors render their own action row below; code
@@ -511,7 +543,7 @@ export default function FileEditorPage() {
             level. */}
         {isMarkdownFile && (
           <div className="ml-auto flex items-center gap-1">
-            <ThemeToggleButton />
+            <ThemeMenuButton />
             <Button
               type="button"
               size="icon"
@@ -544,7 +576,7 @@ export default function FileEditorPage() {
               title="Save current state (⌘/Ctrl+S)"
             >
               {justSavedOffice
-                ? <Check className="h-4 w-4 text-emerald-500" />
+                ? <Check className="h-4 w-4 text-primary" />
                 : <Save className="h-4 w-4" />}
               {savingOffice ? 'Saving…' : justSavedOffice ? 'Saved' : 'Save'}
             </Button>
@@ -582,7 +614,7 @@ export default function FileEditorPage() {
               <History className="h-4 w-4" />
               History
             </Button>
-            <ThemeToggleButton />
+            <ThemeMenuButton />
           </div>
         )}
         {viewerReady && blobUrl && (
@@ -594,12 +626,12 @@ export default function FileEditorPage() {
             >
               <Download className="h-3.5 w-3.5" /> Download
             </a>
-            <ThemeToggleButton />
+            <ThemeMenuButton />
           </div>
         )}
         {!isMarkdownFile && !officeReady && !whiteboardReady && !(viewerReady && blobUrl) && (
           <div className="ml-auto">
-            <ThemeToggleButton />
+            <ThemeMenuButton />
           </div>
         )}
       </header>

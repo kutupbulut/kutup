@@ -1,14 +1,55 @@
 import type { CSSProperties } from 'react'
+import {
+  Activity,
+  Bell,
+  Camera,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  Cpu,
+  Database,
+  Download,
+  File,
+  Folder,
+  FolderPlus,
+  Globe,
+  HardDrive,
+  Info,
+  KeyRound,
+  Lock,
+  LogOut,
+  MessageCircle,
+  Moon,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RefreshCcw,
+  Search,
+  Settings,
+  Share2,
+  Shield,
+  Star,
+  Sun,
+  Trash2,
+  TriangleAlert,
+  Upload,
+  User,
+  UserCheck,
+  UserPlus,
+  Users,
+  UserX,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
 
 /**
- * Path-only SVG icon set ported verbatim from the Claude Design handoff
- * (`/tmp/kutup-design/kutup/project/kutup-mobile.html`'s `ICONS` map). Single-
- * path icons keep the bundle small (~200 bytes per icon) and let us style
- * stroke / fill / size from props.
- *
- * Add to this map when a page needs a new icon; never inline ad-hoc SVG paths
- * in component code — keep them centralized so the visual language stays
- * consistent.
+ * Compatibility adapter for the compact path icons still used by the older
+ * mobile account and Admin surfaces. New product UI uses `lucide-react`;
+ * migrate an entry when its owning surface is rewritten instead of extending
+ * this map with new paths.
  */
 export const ICONS = {
   folder:
@@ -57,12 +98,12 @@ export const ICONS = {
   globe:
     'M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zM2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z',
   key: 'M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4',
-  // Matches lucide-react's `HardDrive` — same icon the desktop Sidebar
+  // Matches lucide-react's `HardDrive` — same icon as the desktop app sidebar
   // storage card already uses, so the mobile StorageCard reads as part of
   // the same icon family.
   hardDrive:
     'M22 12H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11zM6 16h.01M10 16h.01',
-  // ── Admin icons (ported from the kutup-admin-mobile design) ──
+  // Mobile Admin compatibility icons.
   userCheck:
     'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM17 11l2 2 4-4',
   userX:
@@ -87,6 +128,51 @@ export const ICONS = {
 
 export type IconName = keyof typeof ICONS
 
+const ICON_COMPONENTS: Record<string, LucideIcon> = {
+  [ICONS.folder]: Folder,
+  [ICONS.folderPlus]: FolderPlus,
+  [ICONS.users]: Users,
+  [ICONS.message]: MessageCircle,
+  [ICONS.trash]: Trash2,
+  [ICONS.user]: User,
+  [ICONS.search]: Search,
+  [ICONS.plus]: Plus,
+  [ICONS.upload]: Upload,
+  [ICONS.download]: Download,
+  [ICONS.camera]: Camera,
+  [ICONS.more]: MoreHorizontal,
+  [ICONS.chevronLeft]: ChevronLeft,
+  [ICONS.chevronRight]: ChevronRight,
+  [ICONS.chevronDown]: ChevronDown,
+  [ICONS.chevronUp]: ChevronUp,
+  [ICONS.x]: X,
+  [ICONS.share]: Share2,
+  [ICONS.rename]: Pencil,
+  [ICONS.star]: Star,
+  [ICONS.rotateCcw]: RefreshCcw,
+  [ICONS.lock]: Lock,
+  [ICONS.shield]: Shield,
+  [ICONS.sun]: Sun,
+  [ICONS.moon]: Moon,
+  [ICONS.settings]: Settings,
+  [ICONS.logout]: LogOut,
+  [ICONS.bell]: Bell,
+  [ICONS.info]: Info,
+  [ICONS.globe]: Globe,
+  [ICONS.key]: KeyRound,
+  [ICONS.hardDrive]: HardDrive,
+  [ICONS.userCheck]: UserCheck,
+  [ICONS.userX]: UserX,
+  [ICONS.userPlus]: UserPlus,
+  [ICONS.file]: File,
+  [ICONS.activity]: Activity,
+  [ICONS.database]: Database,
+  [ICONS.alertTriangle]: TriangleAlert,
+  [ICONS.cpu]: Cpu,
+  [ICONS.clock]: Clock,
+  [ICONS.check]: Check,
+}
+
 interface IconProps {
   /** Path data — typically passed as `ICONS.foo`. */
   d: string
@@ -94,7 +180,7 @@ interface IconProps {
   size?: number
   /** Stroke color. Defaults to currentColor. */
   color?: string
-  /** Stroke-width override. Default 1.8 — matches the design prototype. */
+  /** Stroke-width override. Defaults to 1.8 for the responsive icon set. */
   strokeWidth?: number
   /** Optional inline styles for fine positioning. */
   style?: CSSProperties
@@ -103,7 +189,7 @@ interface IconProps {
 
 /**
  * Single-path SVG icon. Use as `<Icon d={ICONS.search} size={18} />`.
- * Stroke + linecap/linejoin defaults match the design prototype's icon look.
+ * Stroke, linecap, and linejoin defaults keep the icon set visually coherent.
  */
 export function Icon({
   d,
@@ -113,6 +199,21 @@ export function Icon({
   style,
   className,
 }: IconProps) {
+  const Lucide = ICON_COMPONENTS[d]
+  if (Lucide) {
+    return (
+      <Lucide
+        width={size}
+        height={size}
+        color={color}
+        strokeWidth={strokeWidth}
+        style={style}
+        className={className}
+        aria-hidden="true"
+      />
+    )
+  }
+
   return (
     <svg
       width={size}

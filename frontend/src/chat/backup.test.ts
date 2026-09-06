@@ -216,6 +216,7 @@ async function open(
   databaseName: string,
   history: () => Promise<ChatHistoryEntry[]> = async () => [historyEntry()],
   checkpoint?: ChatBackupRuntime['checkpoint'],
+  deviceId = 9,
 ) {
   const coordinator = await ChatBackupCoordinator.open({
     databaseName,
@@ -223,7 +224,7 @@ async function open(
     username: 'user',
     serverName: 'kutup.dev',
     masterKey: new Uint8Array(32).fill(3),
-    deviceId: 9,
+    deviceId,
     history,
     manifestSequence: async () => 1,
     mediaSources: () => [],
@@ -265,6 +266,37 @@ describe('ChatBackupCoordinator durable retry', () => {
     const restored = await open(transport, restoredDatabase, async () => [])
     await restored.settled()
     expect(await restored.restoredHistoryAsync()).toHaveLength(1)
+  })
+
+  it('preserves one authenticated outgoing origin across linked devices', async () => {
+    const firstTransport = new ScriptedTransport()
+    const secondTransport = new ScriptedTransport()
+    const firstDatabase = `backup-linked-first:${crypto.randomUUID()}`
+    const secondDatabase = `backup-linked-second:${crypto.randomUUID()}`
+    const restoredDatabase = `backup-linked-restored:${crypto.randomUUID()}`
+    databaseNames.push(firstDatabase, secondDatabase, restoredDatabase)
+    const firstHistory = async () => [historyEntry()]
+    const linkedHistory = async () => [{ ...historyEntry(), delivered: false }]
+
+    const first = await open(firstTransport, firstDatabase, firstHistory, undefined, 9)
+    const second = await open(secondTransport, secondDatabase, linkedHistory, undefined, 10)
+    await Promise.all([first.settled(), second.settled()])
+
+    const secondSegment = secondTransport.appendRequests[0]
+    await firstTransport.appendSegment({
+      ...structuredClone(secondSegment),
+      operationId: '99999999-9999-4999-8999-999999999999',
+      sourceDeviceId: 10,
+      deviceSequence: 1,
+      previousSegmentDigest: zeroDigest,
+    })
+
+    const restored = await open(firstTransport, restoredDatabase, async () => [])
+    await restored.settled()
+    const history = await restored.restoredHistoryAsync()
+    expect(history).toHaveLength(1)
+    expect(history[0].senderDeviceId).toBe(9)
+    expect(history[0].delivered).toBe(true)
   })
 
   it('rejects an exact duplicate record repeated by the same device chain', async () => {

@@ -1010,12 +1010,7 @@ pub async fn get_user_by_email(
     let username = username
         .filter(|value| !value.is_empty())
         .ok_or_else(|| AppError::conflict("recipient identity is unavailable"))?;
-    let domain = state
-        .federation
-        .as_ref()
-        .map(|federation| federation.server_name())
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| AppError::conflict("named shares require a canonical server domain"))?;
+    let domain = state.config.chat_server_name.as_str();
     Ok(Json(UserLookupResponse {
         user_id: id.to_string(),
         account: format!("{username}@{domain}"),

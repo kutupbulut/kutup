@@ -4,6 +4,7 @@ frontend/dist/
 frontend/public/chat-wasm/
 frontend/public/crypto-wasm/
 frontend/node_modules/
+frontend/*.tsbuildinfo
 frontend/package-lock.json
 nginx/certs/
 docker-compose.override.yml

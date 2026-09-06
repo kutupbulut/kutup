@@ -1,11 +1,21 @@
-import { Download, Trash2, Pencil, Share2, Globe, Link2, FileText } from 'lucide-react'
+import { useEffect, useRef } from 'react'
+import {
+  Download,
+  FileText,
+  Globe,
+  Link2,
+  Pencil,
+  Share2,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { FolderIcon, FOLDER_COLORS, DEFAULT_FOLDER_COLOR } from './FolderIcon'
 import { formatBytes } from '@/lib/format'
 import type { Collection, DecryptedFile } from '@/types/drive'
+import { DEFAULT_FOLDER_COLOR, FOLDER_COLORS, FolderIcon } from './FolderIcon'
 
 function isCollection(item: Collection | DecryptedFile): item is Collection {
   return 'ownerUserId' in item
@@ -41,167 +51,197 @@ export default function DetailsPanel({
   onEnter,
 }: Props) {
   const { t } = useTranslation()
+  const panelRef = useRef<HTMLElement>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
+  const isOpen = item !== null
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    returnFocusRef.current = document.activeElement as HTMLElement | null
+    panelRef.current?.focus()
+
+    return () => {
+      returnFocusRef.current?.focus()
+      returnFocusRef.current = null
+    }
+  }, [isOpen])
 
   if (!item) return null
 
   const isFolder = isCollection(item)
-
-  const showColorRow = isFolder && !(item as Collection).isRemote && !!onColor
-
-  // One-line centered meta strip. Files show "size · date"; remote folders
-  // show a federation badge; owned folders have nothing here (color row
-  // below carries their meta).
-  const metaParts: React.ReactNode[] = []
-  if (!isFolder) {
-    const f = item as DecryptedFile
-    if (f.decryptedSize != null) metaParts.push(formatBytes(f.decryptedSize))
-    if (f.createdAt) metaParts.push(new Date(f.createdAt).toLocaleDateString())
-  } else if ((item as Collection).isRemote) {
-    metaParts.push(
-      <span key="fed" className="inline-flex items-center gap-1">
-        <Globe className="h-3 w-3 text-primary" />
-        {t('details.federatedShare')}
-      </span>,
-    )
-  }
-
-  const hasMetaText = metaParts.length > 0
-  const hasMeta = hasMetaText || showColorRow
+  const folder = isFolder ? item : null
+  const file = isFolder ? null : item
+  const itemName = item.decryptedName ?? (isFolder ? '…' : '[encrypted]')
+  const showColorRow = !!folder && !folder.isRemote && !!onColor
 
   return (
-    <Dialog open={!!item} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="sm:max-w-sm flex flex-col">
-        <DialogHeader className="pb-2">
-          <DialogTitle>{t('details.title')}</DialogTitle>
-        </DialogHeader>
+    <aside
+      ref={panelRef}
+      tabIndex={-1}
+      aria-labelledby="files-details-title"
+      className="absolute inset-y-0 right-0 z-30 flex h-full w-[min(22rem,calc(100%-1rem))] shrink-0 flex-col border-l border-border bg-background shadow-2xl outline-none xl:static xl:z-auto xl:w-80 xl:shadow-none"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onClose()
+      }}
+    >
+      <header className="flex h-16 shrink-0 items-center justify-between border-b border-border px-5">
+        <h2 id="files-details-title" className="font-display text-lg font-semibold tracking-tight">
+          {t('details.title')}
+        </h2>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={t('common.close')}
+          onClick={onClose}
+        >
+          <X aria-hidden="true" />
+        </Button>
+      </header>
 
-        {/* Icon + name */}
-        <div className="flex flex-col items-center gap-3 py-6">
-          {isFolder ? (
-            <FolderIcon color={(item as Collection).color} size={72} />
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
+        <div className="flex flex-col items-center gap-3 py-5">
+          {folder ? (
+            <FolderIcon color={folder.color} size={72} />
           ) : (
-            <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-muted">
-              <FileText className="h-8 w-8 text-muted-foreground" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+              <FileText className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
             </div>
           )}
-          <p className="text-sm font-medium text-center break-all px-2">
-            {isFolder
-              ? (item as Collection).decryptedName ?? '…'
-              : (item as DecryptedFile).decryptedName ?? '[encrypted]'}
+          <p className="break-all px-2 text-center text-sm font-semibold text-foreground">
+            {itemName}
           </p>
+          {folder?.isRemote && (
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+              <Globe className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+              {t('details.federatedShare')}
+            </p>
+          )}
         </div>
 
-        {hasMeta && (
-          <>
-            <Separator />
-            <div className="py-4 flex flex-col items-center gap-3">
-              {hasMetaText && (
-                <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  {metaParts.map((part, i) => (
-                    <span key={i} className="inline-flex items-center gap-2">
-                      {i > 0 && <span aria-hidden>·</span>}
-                      {part}
-                    </span>
-                  ))}
-                </p>
-              )}
-              {showColorRow && onColor && (
-                <div className="flex items-center justify-center gap-2">
-                  {FOLDER_COLORS.map((fc) => (
-                    <button
-                      key={fc.value}
-                      type="button"
-                      title={fc.label}
-                      aria-label={`Set color to ${fc.label}`}
-                      className="h-6 w-6 rounded-full transition-transform hover:scale-110"
-                      style={{
-                        background: fc.hex,
-                        outline: (item as Collection).color === fc.value ? '2px solid var(--ring)' : 'none',
-                        outlineOffset: 2,
-                      }}
-                      onClick={() => onColor(item as Collection, fc.value)}
-                    />
-                  ))}
-                  <button
-                    type="button"
-                    title="Default"
-                    aria-label="Reset to default color"
-                    className="h-6 w-6 rounded-full transition-transform hover:scale-110"
-                    style={{
-                      background: DEFAULT_FOLDER_COLOR,
-                      outline: !(item as Collection).color ? '2px solid var(--ring)' : 'none',
-                      outlineOffset: 2,
-                    }}
-                    onClick={() => onColor(item as Collection, null)}
-                  />
-                </div>
-              )}
-            </div>
-          </>
+        {file && (
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 border-y border-border py-4 text-sm">
+            <dt className="text-muted-foreground">{t('details.size')}</dt>
+            <dd className="text-right font-medium">
+              {file.decryptedSize != null ? formatBytes(file.decryptedSize) : '—'}
+            </dd>
+            <dt className="text-muted-foreground">{t('details.created')}</dt>
+            <dd className="text-right font-medium">
+              {file.createdAt ? new Date(file.createdAt).toLocaleDateString() : '—'}
+            </dd>
+            <dt className="text-muted-foreground">{t('details.type')}</dt>
+            <dd className="truncate text-right font-mono text-xs font-medium" title={file.decryptedMimeType}>
+              {file.decryptedMimeType ?? '—'}
+            </dd>
+          </dl>
         )}
 
-        <Separator />
+        {showColorRow && folder && onColor && (
+          <fieldset className="border-y border-border py-4">
+            <legend className="sr-only">{t('details.folderColor')}</legend>
+            <div className="flex items-center justify-center gap-3">
+              {FOLDER_COLORS.map((folderColor) => (
+                <button
+                  key={folderColor.value}
+                  type="button"
+                  title={folderColor.label}
+                  aria-label={t('details.setColor', { color: folderColor.label })}
+                  aria-pressed={folder.color === folderColor.value}
+                  className="h-6 w-6 rounded-full transition-transform hover:scale-110"
+                  style={{
+                    background: folderColor.hex,
+                    outline: folder.color === folderColor.value ? '2px solid var(--ring)' : 'none',
+                    outlineOffset: 2,
+                  }}
+                  onClick={() => onColor(folder, folderColor.value)}
+                />
+              ))}
+              <button
+                type="button"
+                title={t('details.defaultColor')}
+                aria-label={t('details.defaultColor')}
+                aria-pressed={!folder.color}
+                className="h-6 w-6 rounded-full transition-transform hover:scale-110"
+                style={{
+                  background: DEFAULT_FOLDER_COLOR,
+                  outline: !folder.color ? '2px solid var(--ring)' : 'none',
+                  outlineOffset: 2,
+                }}
+                onClick={() => onColor(folder, null)}
+              />
+            </div>
+          </fieldset>
+        )}
 
-        {/* Actions */}
-        <div className="flex flex-col gap-2 pt-4 flex-1">
-          {isFolder ? (
+        <Separator className={file || showColorRow ? 'hidden' : undefined} />
+
+        <div className="flex flex-1 flex-col gap-2 pt-5">
+          {folder ? (
             <>
-              <Button className="w-full" onClick={() => { onEnter?.(item as Collection); onClose() }}>
+              <Button onClick={() => { onEnter?.(folder); onClose() }}>
                 {t('details.openFolder')}
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => { onDownloadFolder?.(item as Collection); onClose() }}>
-                <Download className="h-4 w-4 mr-2" /> {t('details.downloadFolder')}
+              <Button variant="outline" onClick={() => { onDownloadFolder?.(folder); onClose() }}>
+                <Download aria-hidden="true" />
+                {t('details.downloadFolder')}
               </Button>
-              {!(item as Collection).isRemote && (
+              {!folder.isRemote && (
                 <>
-                  <Button variant="outline" className="w-full" onClick={() => { onRename?.(item as Collection); onClose() }}>
-                    <Pencil className="h-4 w-4 mr-2" /> {t('details.rename')}
+                  <Button variant="outline" onClick={() => { onRename?.(folder); onClose() }}>
+                    <Pencil aria-hidden="true" />
+                    {t('details.rename')}
                   </Button>
-                  <Button variant="outline" className="w-full" onClick={() => { onShare?.(item as Collection); onClose() }}>
-                    <Share2 className="h-4 w-4 mr-2" /> {t('details.share')}
+                  <Button variant="outline" onClick={() => { onShare?.(folder); onClose() }}>
+                    <Share2 aria-hidden="true" />
+                    {t('details.share')}
                   </Button>
-                  <Button variant="outline" className="w-full" onClick={() => { onPublicLink?.(item as Collection); onClose() }}>
-                    <Link2 className="h-4 w-4 mr-2" /> {t('details.copyPublicLink')}
+                  <Button variant="outline" onClick={() => { onPublicLink?.(folder); onClose() }}>
+                    <Link2 aria-hidden="true" />
+                    {t('details.copyPublicLink')}
                   </Button>
                 </>
               )}
               {canDelete && (
                 <Button
                   variant="destructive"
-                  className="w-full mt-auto"
-                  onClick={() => { onDelete?.(item); onClose() }}
+                  className="mt-auto"
+                  onClick={() => { onDelete?.(folder); onClose() }}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" /> {t('details.deleteFolder')}
+                  <Trash2 aria-hidden="true" />
+                  {t('details.deleteFolder')}
                 </Button>
               )}
             </>
           ) : (
             <>
-              <Button className="w-full" onClick={() => onDownload?.(item as DecryptedFile)}>
-                <Download className="h-4 w-4 mr-2" /> {t('details.download')}
+              <Button onClick={() => { if (file) onDownload?.(file) }}>
+                <Download aria-hidden="true" />
+                {t('details.download')}
               </Button>
               {canDelete && onRenameFile && (
                 <Button
                   variant="outline"
-                  className="w-full"
-                  onClick={() => { onRenameFile(item as DecryptedFile); onClose() }}
+                  onClick={() => { if (file) onRenameFile(file); onClose() }}
                 >
-                  <Pencil className="h-4 w-4 mr-2" /> {t('details.rename')}
+                  <Pencil aria-hidden="true" />
+                  {t('details.rename')}
                 </Button>
               )}
               {canDelete && (
                 <Button
                   variant="destructive"
-                  className="w-full mt-auto"
-                  onClick={() => { onDelete?.(item); onClose() }}
+                  className="mt-auto"
+                  onClick={() => { if (file) onDelete?.(file); onClose() }}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" /> {t('details.delete')}
+                  <Trash2 aria-hidden="true" />
+                  {t('details.delete')}
                 </Button>
               )}
             </>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </aside>
   )
 }

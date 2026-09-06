@@ -3,7 +3,9 @@ import {
   type Theme,
   type ThemePreference,
   getTheme,
+  getThemePreference,
   subscribeTheme,
+  subscribeThemePreference,
   applyTheme,
   toggleTheme,
   isThemePreference,
@@ -32,4 +34,28 @@ export function useTheme(): [Theme, () => Theme, (pref: ThemePreference) => void
     }
   }, [])
   return [theme, toggleTheme, applyTheme]
+}
+
+/** Reactive persisted preference for explicit light/dark/system controls. */
+export function useThemePreference(): [
+  ThemePreference,
+  (preference: ThemePreference) => void,
+] {
+  const [preference, setPreference] = useState<ThemePreference>(getThemePreference)
+
+  useEffect(() => {
+    const unsubscribe = subscribeThemePreference(setPreference)
+    function onStorage(event: StorageEvent) {
+      if (event.key === 'kutup-theme') {
+        applyTheme(isThemePreference(event.newValue) ? event.newValue : 'system')
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => {
+      unsubscribe()
+      window.removeEventListener('storage', onStorage)
+    }
+  }, [])
+
+  return [preference, applyTheme]
 }

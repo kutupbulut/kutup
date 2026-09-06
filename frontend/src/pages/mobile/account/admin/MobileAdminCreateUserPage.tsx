@@ -25,9 +25,8 @@ import { cn } from '@/lib/utils'
  * Differences from the design's mock form:
  *  - **Temp password field added** — kutup's `POST /admin/users`
  *    requires it. The new user changes it on first sign-in.
- *  - **"Make admin on create" toggle dropped** — backend doesn't
- *    accept it on create today. Promote post-create when PR 12.1
- *    lands the `isAdmin` field on the update endpoint.
+ *  - **"Make admin on create" toggle omitted** — the backend doesn't
+ *    accept an administrator role during account creation.
  *  - **"Send welcome email" toggle dropped** — kutup has no welcome-
  *    email path; toggling it would be a lie.
  */

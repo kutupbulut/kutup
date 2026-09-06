@@ -48,7 +48,7 @@ export async function signInOrBootstrap(ctx: BrowserContext): Promise<Page> {
     }
     const mnemonic = Array.from({ length: 24 }, (_, i) => seen.get(i + 1)).join(' ')
     if (mnemonic.split(' ').filter(Boolean).length !== 24) {
-      throw new Error(`failed to capture mnemonic; got: "${mnemonic}"`)
+      throw new Error(`failed to capture recovery mnemonic (${seen.size}/24 words found)`)
     }
 
     await page.locator('button').filter({ hasText: /saved/i }).first().click()

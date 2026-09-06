@@ -4,22 +4,14 @@ import { Surface } from '@/components/ui/surface'
 import { formatBytes } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-/**
- * StorageCard — "Storage · End-to-end encrypted · Upgrade" surface used on the
- * Files page (root view only) and on the Account page. Reflects current usage
- * with a horizontal progress bar.
- *
- * The "Upgrade" button is rendered but its click handler is wired by the
- * caller; in PR 2 it points at /settings or noops (no upgrade flow yet).
- */
+/** A compact, read-only storage usage summary. */
 interface StorageCardProps {
   used: number
   quota: number
-  onUpgrade?: () => void
   className?: string
 }
 
-export function StorageCard({ used, quota, onUpgrade, className }: StorageCardProps) {
+export function StorageCard({ used, quota, className }: StorageCardProps) {
   const { t } = useTranslation()
   const pct = quota > 0 ? Math.min((used / quota) * 100, 100) : 0
 
@@ -27,10 +19,6 @@ export function StorageCard({ used, quota, onUpgrade, className }: StorageCardPr
     <Surface className={cn('p-3.5', className)}>
       <div className="flex items-center gap-2.5 mb-2.5">
         <div className="w-8 h-8 rounded-[10px] bg-primary-faint flex items-center justify-center text-primary shrink-0">
-          {/* hardDrive icon — same as the desktop Sidebar's storage card so
-              the mobile + desktop storage chips read as one design family.
-              (Previously this used `shield`, which read as a security badge
-              rather than a storage indicator.) */}
           <Icon d={ICONS.hardDrive} size={16} />
         </div>
         <div className="flex-1">
@@ -41,15 +29,6 @@ export function StorageCard({ used, quota, onUpgrade, className }: StorageCardPr
             {t('mobile.item.e2eBadge', 'End-to-end encrypted')}
           </div>
         </div>
-        {onUpgrade && (
-          <button
-            type="button"
-            onClick={onUpgrade}
-            className="bg-transparent border border-border px-2.5 py-1 rounded-[14px] text-[12px] font-medium text-text-primary cursor-pointer hover:bg-surface-raised transition-colors"
-          >
-            {t('mobile.account.upgrade', 'Upgrade')}
-          </button>
-        )}
       </div>
       <div className="flex justify-between text-[11.5px] text-text-tertiary mb-1.5">
         <span className="font-medium">
@@ -63,7 +42,14 @@ export function StorageCard({ used, quota, onUpgrade, className }: StorageCardPr
           })}
         </span>
       </div>
-      <div className="h-[5px] bg-surface-sunken rounded-[3px] overflow-hidden">
+      <div
+        className="h-[5px] bg-surface-sunken rounded-[3px] overflow-hidden"
+        role="progressbar"
+        aria-label={t('mobile.account.storage', 'Storage')}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(pct)}
+      >
         <div
           className="h-full bg-primary rounded-[3px] transition-all duration-300"
           style={{ width: `${pct}%` }}

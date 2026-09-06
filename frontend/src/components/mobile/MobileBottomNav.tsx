@@ -5,20 +5,20 @@ import { cn } from '@/lib/utils'
 import { isSupportedChat, useChatCapabilities } from '@/chat/capabilities'
 
 /**
- * MobileBottomNav — 4-tab navigation rail anchored to the bottom of the
- * viewport.
+ * MobileBottomNav — the three primary workspace destinations anchored to the
+ * bottom of the viewport. Shared with me and Trash stay inside Files rather
+ * than competing with Files and Messages as global destinations.
  *
  * Tabs are route-driven (active state via `useLocation()`). Each tab supports
  * an optional badge (red dot with count, e.g. for Shared invitations or Trash
  * item count).
  *
- * Visual treatment ported from the design prototype: surface bg with backdrop
- * blur + saturate (the iOS "frosted glass" look), border on top, safe-area
- * padding at the bottom so the iOS home indicator doesn't overlap the labels.
+ * The translucent surface and safe-area padding keep labels clear of mobile
+ * browser and operating-system controls.
  */
 
 export interface BottomNavTab {
-  id: 'files' | 'shared' | 'chat' | 'trash' | 'account'
+  id: 'files' | 'chat' | 'account'
   to: string
   icon: IconName
   label: string
@@ -37,11 +37,9 @@ export function MobileBottomNav({ badges }: MobileBottomNavProps) {
 
   const tabs: BottomNavTab[] = [
     { id: 'files', to: '/drive', icon: 'folder', label: t('nav.files', 'Files') },
-    { id: 'shared', to: '/drive/shared', icon: 'users', label: t('nav.shared', 'Shared') },
     ...(isSupportedChat(chatCapabilities.data)
       ? [{ id: 'chat' as const, to: '/chat', icon: 'message' as const, label: t('nav.messages') }]
       : []),
-    { id: 'trash', to: '/drive/trash', icon: 'trash', label: t('nav.trash', 'Trash') },
     { id: 'account', to: '/drive/account', icon: 'user', label: t('nav.account', 'Account') },
   ]
 
@@ -109,16 +107,12 @@ export function MobileBottomNav({ badges }: MobileBottomNavProps) {
 }
 
 function isTabActive(pathname: string, tab: BottomNavTab): boolean {
-  // The Files tab claims `/drive` and any sub-folder route (e.g. `/drive/folder/...`).
-  // The other tabs claim their exact prefix.
+  // Shared and Trash are Files views, so Files owns every /drive route except
+  // the Account subtree. The other destinations claim their exact prefix.
   if (tab.id === 'files') {
-    return (
-      pathname === '/drive' ||
-      (pathname.startsWith('/drive/') &&
-        !pathname.startsWith('/drive/shared') &&
-        !pathname.startsWith('/drive/trash') &&
-        !pathname.startsWith('/drive/account'))
-    )
+    return pathname === '/drive' ||
+      (pathname.startsWith('/drive/') && !pathname.startsWith('/drive/account'))
   }
+  if (tab.id === 'account' && pathname === '/settings') return true
   return pathname === tab.to || pathname.startsWith(tab.to + '/')
 }

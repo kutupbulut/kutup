@@ -1174,6 +1174,39 @@ fn linked_device_note_arrives_as_outgoing_history_via_encrypted_transcript() {
 }
 
 #[test]
+fn canonical_linked_device_accepts_bare_local_sender_from_server() {
+    let mut rng = test_rng();
+    let alice1 = device("alice", 1, &mut rng);
+    let alice2 = device("alice", 2, &mut rng);
+    let bundles = vec![bundle_of(&alice1, 1), bundle_of(&alice2, 2)];
+    let server = Rc::new(MockServer::default());
+    server.script_sync(vec![bundles]);
+    server.set_sync_active(vec![(1, reg_id(&alice1)), (2, reg_id(&alice2))]);
+
+    let mut first = Engine::new_for_development(alice1, server.clone());
+    first.set_local_server("example.test").unwrap();
+    let summary = block_on(first.send(
+        "note-canonical-linked",
+        "alice@example.test",
+        &ChatContent::text("2026-07-16T10:02:00Z", 1, "sync canonical note"),
+        &mut rng,
+    ))
+    .unwrap();
+    assert!(summary.delivered);
+    assert_eq!(server.last_synced().len(), 1);
+
+    let mut second = Engine::new_for_development(alice2, server);
+    second.set_local_server("example.test").unwrap();
+    let report = block_on(second.receive(&mut rng)).unwrap();
+    assert_eq!(report.synced, vec!["note-canonical-linked"]);
+    assert!(report.errors.is_empty());
+    let history = block_on(second.session().sent_history()).unwrap();
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0].peer, "alice@example.test");
+    assert_eq!(history[0].sender_device_id, 1);
+}
+
+#[test]
 fn explicit_contact_state_converges_over_authenticated_linked_device_sync() {
     let mut rng = test_rng();
     let alice1 = device("alice", 1, &mut rng);

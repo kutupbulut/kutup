@@ -1,32 +1,27 @@
+@import "@fontsource-variable/manrope/wght.css";
+@import "@fontsource-variable/source-sans-3/wght.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
-/* ----------------------------------------------------------------------------
- * Tailwind 4 token map.
- *
- * Token values come from the Claude Design handoff at /tmp/kutup-design/kutup/
- * (the `:root` blocks of `kutup-mobile.html` + `kutup-drive.html`). The
- * existing shadcn-style token *names* (--background, --foreground, --primary,
- * etc.) are preserved so every existing component keeps working without code
- * changes — only the OKLCH values shift to match the design.
- *
- * Additional design-only tokens (surface-raised, surface-sunken, text-tertiary,
- * primary-faint, success/-faint, destructive-faint, three shadow vars) are
- * exposed alongside as `--color-*` so they become `bg-surface-raised`,
- * `text-text-tertiary`, etc. via Tailwind 4's @theme mechanism — used by the
- * new mobile UI components.
- * --------------------------------------------------------------------------*/
+/* Polar Workspace design tokens. The shadcn semantic names remain stable so
+ * existing product code keeps working while Files, Messages, and Account move
+ * into one shell. Light and dark values are designed as pairs; components use
+ * roles instead of palette literals. See docs/plans/polar-workspace-frontend-redesign.md. */
 @theme inline {
-  /* Radius — design uses tighter values than the prior kutup defaults */
+  --font-sans: "Source Sans 3 Variable", "Segoe UI", sans-serif;
+  --font-display: "Manrope Variable", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Existing kutup tokens (re-tuned values defined in :root / .dark blocks) */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -42,6 +37,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -56,10 +52,11 @@
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Design-only additions — used by the mobile UI primitives */
+  /* Product roles retained for current mobile/admin views and new shell work. */
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
   --color-surface-sunken: var(--surface-sunken);
@@ -73,129 +70,130 @@
   --color-destructive-faint: var(--destructive-faint);
   --color-success: var(--success);
   --color-success-faint: var(--success-faint);
+  --color-protected: var(--success);
+  --color-protected-faint: var(--success-faint);
   --color-warning: var(--warning);
   --color-warning-faint: var(--warning-faint);
 
-  /* iOS minimum tap target (HIG) */
   --spacing-tap: 44px;
 }
 
-/* Light theme (default) — values re-tuned to the design's OKLCH stops */
+/* Light: polar canvas, ice surfaces, glacier action, and aurora protection. */
 :root {
   --radius: 0.625rem;
 
-  /* shadcn-style tokens, design-matched */
-  --background: oklch(0.965 0.006 220);          /* was 0.97 0.005 220 */
-  --foreground: oklch(0.14 0.022 240);           /* was 0.12 0.02 240 — slightly warmer */
+  --background: oklch(0.9782 0.0034 247.9);
+  --foreground: oklch(0.2430 0.0240 248.8);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.14 0.022 240);
+  --card-foreground: oklch(0.2430 0.0240 248.8);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.14 0.022 240);
-  --primary: oklch(0.48 0.19 222);               /* was 0.5 0.18 220 — slightly more saturated */
-  --primary-foreground: oklch(0.98 0.005 220);
-  --secondary: oklch(0.93 0.008 220);
-  --secondary-foreground: oklch(0.2 0.02 240);
-  --muted: oklch(0.955 0.006 220);               /* was 0.93 0.01 220 — lighter, matches surface-sunken */
-  --muted-foreground: oklch(0.42 0.028 228);     /* was 0.45 0.04 220 */
-  --accent: oklch(0.93 0.008 220);
-  --accent-foreground: oklch(0.2 0.02 240);
-  --destructive: oklch(0.52 0.20 22);            /* was 0.55 0.22 25 — softer red */
-  --border: oklch(0.87 0.014 218);               /* was 0.88 0.015 220 */
-  --input: oklch(0.87 0.014 218);
-  --ring: oklch(0.48 0.19 222);
-  --chart-1: oklch(0.48 0.19 222);
-  --chart-2: oklch(0.50 0.18 152);
-  --chart-3: oklch(0.55 0.20 62);
-  --chart-4: oklch(0.46 0.20 282);
-  --chart-5: oklch(0.50 0.20 22);
-  --sidebar: oklch(0.945 0.008 220);
-  --sidebar-foreground: oklch(0.14 0.022 240);
-  --sidebar-primary: oklch(0.48 0.19 222);
-  --sidebar-primary-foreground: oklch(0.98 0.005 220);
-  --sidebar-accent: oklch(0.87 0.014 218);
-  --sidebar-accent-foreground: oklch(0.2 0.02 240);
-  --sidebar-border: oklch(0.85 0.015 220);
-  --sidebar-ring: oklch(0.48 0.19 222);
+  --popover-foreground: oklch(0.2430 0.0240 248.8);
+  --primary: oklch(0.5233 0.1868 260.5);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.9585 0.0076 241.7);
+  --secondary-foreground: oklch(0.2430 0.0240 248.8);
+  --muted: oklch(0.9585 0.0076 241.7);
+  --muted-foreground: oklch(0.4860 0.0317 250.2);
+  --accent: oklch(0.9456 0.0177 253.3);
+  --accent-foreground: oklch(0.4240 0.1402 259.4);
+  --destructive: oklch(0.5033 0.1793 21.8);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.9019 0.0137 241.0);
+  --input: oklch(0.9019 0.0137 241.0);
+  --ring: oklch(0.5233 0.1868 260.5);
+  --chart-1: oklch(0.5233 0.1868 260.5);
+  --chart-2: oklch(0.5288 0.0949 174.8);
+  --chart-3: oklch(0.5581 0.1132 77.8);
+  --chart-4: oklch(0.53 0.17 304);
+  --chart-5: oklch(0.5033 0.1793 21.8);
+  /* The rail follows the theme while its information architecture and active
+   * spine remain stable. Light mode is ice; dark mode is polar ink. */
+  --sidebar: oklch(0.9585 0.0076 241.7);
+  --sidebar-foreground: oklch(0.2430 0.0240 248.8);
+  --sidebar-muted: oklch(0.4860 0.0317 250.2);
+  --sidebar-primary: oklch(0.5233 0.1868 260.5);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.9294 0.0173 248.0);
+  --sidebar-accent-foreground: oklch(0.3440 0.1110 258.0);
+  --sidebar-border: oklch(0.9019 0.0137 241.0);
+  --sidebar-ring: oklch(0.5233 0.1868 260.5);
 
-  /* Design-only additions */
   --surface: oklch(1 0 0);
-  --surface-raised: oklch(0.988 0.004 218);
-  --surface-sunken: oklch(0.955 0.006 220);
-  --border-light: oklch(0.93 0.008 220);
-  --text-primary: oklch(0.14 0.022 240);
-  --text-secondary: oklch(0.42 0.028 228);
-  --text-tertiary: oklch(0.60 0.018 224);
-  --primary-pressed: oklch(0.42 0.19 222);
-  --primary-light: oklch(0.91 0.07 220);
-  --primary-faint: oklch(0.955 0.035 220);
-  --destructive-faint: oklch(0.965 0.035 22);
-  --success: oklch(0.50 0.18 152);
-  --success-faint: oklch(0.95 0.05 152);
-  /* Warning — design uses this for >75%-quota indicators on admin storage bars */
-  --warning: oklch(0.62 0.16 65);
-  --warning-faint: oklch(0.96 0.05 65);
+  --surface-raised: oklch(0.9585 0.0076 241.7);
+  --surface-sunken: oklch(0.9782 0.0034 247.9);
+  --border-light: oklch(0.9294 0.0173 248.0);
+  --text-primary: oklch(0.2430 0.0240 248.8);
+  --text-secondary: oklch(0.4860 0.0317 250.2);
+  --text-tertiary: oklch(0.5665 0.0254 248.3);
+  --primary-pressed: oklch(0.45 0.165 260.5);
+  --primary-light: oklch(0.9266 0.0213 252.5);
+  --primary-faint: oklch(0.9456 0.0177 253.3);
+  --destructive-faint: oklch(0.9558 0.0167 3.7);
+  --success: oklch(0.5288 0.0949 174.8);
+  --success-faint: oklch(0.9526 0.0157 177.1);
+  --warning: oklch(0.5581 0.1132 77.8);
+  --warning-faint: oklch(0.9661 0.0400 88.2);
 
-  /* Design shadows — used by sheets + cards */
-  --shadow-sm: 0 1px 2px oklch(0.14 0.02 240 / 0.07);
-  --shadow-md: 0 4px 14px oklch(0.14 0.02 240 / 0.10);
-  --shadow-lg: 0 -8px 24px oklch(0.14 0.02 240 / 0.10);
+  --shadow-sm: 0 1px 2px oklch(0.243 0.024 249 / 0.06);
+  --shadow-md: 0 8px 24px oklch(0.243 0.024 249 / 0.09);
+  --shadow-lg: 0 20px 48px oklch(0.243 0.024 249 / 0.12);
 }
 
-/* Dark theme — values re-tuned to the design's dark OKLCH stops */
+/* Dark: the same hierarchy, rebuilt for low luminance rather than inverted. */
 .dark {
-  --background: oklch(0.138 0.018 242);
-  --foreground: oklch(0.920 0.012 214);
-  --card: oklch(0.175 0.020 238);
-  --card-foreground: oklch(0.920 0.012 214);
-  --popover: oklch(0.175 0.020 238);
-  --popover-foreground: oklch(0.920 0.012 214);
-  --primary: oklch(0.62 0.17 220);
-  --primary-foreground: oklch(0.98 0.005 220);
-  --secondary: oklch(0.215 0.018 238);
-  --secondary-foreground: oklch(0.85 0.02 215);
-  --muted: oklch(0.155 0.018 240);
-  --muted-foreground: oklch(0.620 0.022 220);
-  --accent: oklch(0.215 0.018 238);
-  --accent-foreground: oklch(0.85 0.02 215);
-  --destructive: oklch(0.62 0.20 22);
-  --border: oklch(0.255 0.022 236);
-  --input: oklch(0.255 0.022 236);
-  --ring: oklch(0.62 0.17 220);
-  --chart-1: oklch(0.62 0.17 220);
-  --chart-2: oklch(0.62 0.16 152);
-  --chart-3: oklch(0.65 0.18 62);
-  --chart-4: oklch(0.60 0.18 282);
-  --chart-5: oklch(0.62 0.20 22);
-  --sidebar: oklch(0.120 0.016 244);
-  --sidebar-foreground: oklch(0.920 0.012 214);
-  --sidebar-primary: oklch(0.62 0.17 220);
-  --sidebar-primary-foreground: oklch(0.98 0.005 220);
-  --sidebar-accent: oklch(0.215 0.018 238);
-  --sidebar-accent-foreground: oklch(0.85 0.02 215);
-  --sidebar-border: oklch(0.220 0.020 238);
-  --sidebar-ring: oklch(0.62 0.17 220);
+  --background: oklch(0.1795 0.0173 252.6);
+  --foreground: oklch(0.9580 0.0093 242.8);
+  --card: oklch(0.2221 0.0221 248.9);
+  --card-foreground: oklch(0.9580 0.0093 242.8);
+  --popover: oklch(0.2221 0.0221 248.9);
+  --popover-foreground: oklch(0.9580 0.0093 242.8);
+  --primary: oklch(0.7349 0.1367 262.0);
+  --primary-foreground: oklch(0.2572 0.0616 252.8);
+  --secondary: oklch(0.2593 0.0259 248.9);
+  --secondary-foreground: oklch(0.9580 0.0093 242.8);
+  --muted: oklch(0.2593 0.0259 248.9);
+  --muted-foreground: oklch(0.7379 0.0276 239.2);
+  --accent: oklch(0.3045 0.0508 253.8);
+  --accent-foreground: oklch(0.8891 0.0467 258.4);
+  --destructive: oklch(0.7663 0.1406 13.8);
+  --destructive-foreground: oklch(0.1795 0.0173 252.6);
+  --border: oklch(0.3413 0.0316 247.0);
+  --input: oklch(0.3413 0.0316 247.0);
+  --ring: oklch(0.7349 0.1367 262.0);
+  --chart-1: oklch(0.7349 0.1367 262.0);
+  --chart-2: oklch(0.7478 0.1106 173.3);
+  --chart-3: oklch(0.8040 0.1216 82.0);
+  --chart-4: oklch(0.72 0.13 304);
+  --chart-5: oklch(0.7663 0.1406 13.8);
+  --sidebar: oklch(0.2050 0.0340 249.0);
+  --sidebar-foreground: oklch(0.9650 0.0070 241.0);
+  --sidebar-muted: oklch(0.7350 0.0270 239.0);
+  --sidebar-primary: oklch(0.7550 0.1320 251.0);
+  --sidebar-primary-foreground: oklch(0.1800 0.0350 249.0);
+  --sidebar-accent: oklch(0.2850 0.0470 250.0);
+  --sidebar-accent-foreground: oklch(0.9650 0.0070 241.0);
+  --sidebar-border: oklch(1 0 0 / 0.11);
+  --sidebar-ring: oklch(0.7550 0.1320 251.0);
 
-  /* Design-only additions */
-  --surface: oklch(0.175 0.020 238);
-  --surface-raised: oklch(0.205 0.022 236);
-  --surface-sunken: oklch(0.155 0.018 240);
-  --border-light: oklch(0.215 0.018 238);
-  --text-primary: oklch(0.920 0.012 214);
-  --text-secondary: oklch(0.620 0.022 220);
-  --text-tertiary: oklch(0.450 0.016 225);
-  --primary-pressed: oklch(0.55 0.18 220);
-  --primary-light: oklch(0.265 0.075 222);
-  --primary-faint: oklch(0.215 0.048 222);
-  --destructive-faint: oklch(0.215 0.055 22);
-  --success: oklch(0.62 0.16 152);
-  --success-faint: oklch(0.22 0.055 152);
-  --warning: oklch(0.70 0.16 65);
-  --warning-faint: oklch(0.22 0.04 65);
+  --surface: oklch(0.2221 0.0221 248.9);
+  --surface-raised: oklch(0.2593 0.0259 248.9);
+  --surface-sunken: oklch(0.1795 0.0173 252.6);
+  --border-light: oklch(0.2795 0.0278 248.9);
+  --text-primary: oklch(0.9580 0.0093 242.8);
+  --text-secondary: oklch(0.7379 0.0276 239.2);
+  --text-tertiary: oklch(0.6709 0.0285 242.9);
+  --primary-pressed: oklch(0.67 0.15 262.0);
+  --primary-light: oklch(0.3228 0.0451 251.7);
+  --primary-faint: oklch(0.3045 0.0508 253.8);
+  --destructive-faint: oklch(0.2864 0.0394 4.3);
+  --success: oklch(0.7478 0.1106 173.3);
+  --success-faint: oklch(0.3072 0.0384 176.6);
+  --warning: oklch(0.8040 0.1216 82.0);
+  --warning-faint: oklch(0.3143 0.0368 84.9);
 
-  /* Heavier shadows in dark mode (the surfaces are darker, so the shadow needs more presence) */
-  --shadow-sm: 0 1px 3px oklch(0.04 0.01 240 / 0.45);
-  --shadow-md: 0 4px 14px oklch(0.04 0.01 240 / 0.55);
-  --shadow-lg: 0 16px 40px oklch(0.04 0.01 240 / 0.65);
+  --shadow-sm: 0 1px 3px oklch(0.08 0.01 250 / 0.45);
+  --shadow-md: 0 8px 24px oklch(0.08 0.01 250 / 0.55);
+  --shadow-lg: 0 20px 48px oklch(0.08 0.01 250 / 0.65);
 }
 
 * {
@@ -206,8 +204,20 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
+  min-width: 320px;
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background-color: color-mix(in oklch, var(--primary) 24%, transparent);
+  color: var(--foreground);
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 /* ----------------------------------------------------------------------------
@@ -230,10 +240,21 @@ body {
 }
 
 /* ----------------------------------------------------------------------------
- * Sheet animation keyframes — ported from the design prototype.
+ * Sheet animation keyframes.
  *
  * `sheet-up`: bottom sheets slide up from the bottom edge.
  * `fade-in`:  the dimmed scrim behind a sheet fades in.
  * --------------------------------------------------------------------------*/
 @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes fade-in  { from { opacity: 0; }                 to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

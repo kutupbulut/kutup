@@ -138,6 +138,7 @@ CREATE INDEX IF NOT EXISTS messages_by_cursor ON messages (cursor);
 CREATE TABLE IF NOT EXISTS sent_messages (
     send_id        TEXT PRIMARY KEY,
     peer           TEXT    NOT NULL,
+    sender_device_id INTEGER NOT NULL DEFAULT 0,
     content        BLOB    NOT NULL,
     created_at     INTEGER NOT NULL,
     delivered_at   INTEGER,
@@ -242,6 +243,7 @@ INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (15, 0);
 INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (16, 0);
 INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (17, 0);
 INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (18, 0);
+INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (19, 0);
 CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value INTEGER NOT NULL
@@ -527,7 +529,7 @@ impl ChatDb for SqliteChatDb {
         let conn = self.conn.borrow();
         db(conn
             .query_row(
-                "SELECT send_id, peer, content, created_at, delivered_at, delivered, deduplicated
+                "SELECT send_id, peer, sender_device_id, content, created_at, delivered_at, delivered, deduplicated
                  FROM sent_messages WHERE send_id = ?1",
                 [send_id],
                 sent_message_row,
@@ -538,7 +540,7 @@ impl ChatDb for SqliteChatDb {
     async fn list_sent_messages(&self) -> Result<Vec<SentMessage>> {
         let conn = self.conn.borrow();
         let mut stmt = db(conn.prepare(
-            "SELECT send_id, peer, content, created_at, delivered_at, delivered, deduplicated
+            "SELECT send_id, peer, sender_device_id, content, created_at, delivered_at, delivered, deduplicated
              FROM sent_messages ORDER BY created_at, send_id",
         ))?;
         let rows = db(stmt.query_map([], sent_message_row))?;
@@ -1033,16 +1035,18 @@ impl ChatDb for SqliteChatDb {
         for (send_id, message) in &pending.sent_messages {
             db(tx.execute(
                 "INSERT INTO sent_messages
-                     (send_id, peer, content, created_at, delivered_at, delivered, deduplicated)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                     (send_id, peer, sender_device_id, content, created_at, delivered_at, delivered, deduplicated)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
                  ON CONFLICT(send_id) DO UPDATE SET
-                     peer = excluded.peer, content = excluded.content,
+                     peer = excluded.peer, sender_device_id = excluded.sender_device_id,
+                     content = excluded.content,
                      delivered_at = excluded.delivered_at,
                      delivered = excluded.delivered,
                      deduplicated = excluded.deduplicated",
                 rusqlite::params![
                     send_id,
                     message.peer,
+                    message.sender_device_id,
                     message.content,
                     message.created_at,
                     message.delivered_at,
@@ -1378,6 +1382,12 @@ fn ensure_schema_upgrades(conn: &Connection) -> Result<()> {
     if !has_column(conn, "outbox", "sealed_capability")? {
         db(conn.execute("ALTER TABLE outbox ADD COLUMN sealed_capability BLOB", []))?;
     }
+    if !has_column(conn, "sent_messages", "sender_device_id")? {
+        db(conn.execute(
+            "ALTER TABLE sent_messages ADD COLUMN sender_device_id INTEGER NOT NULL DEFAULT 0",
+            [],
+        ))?;
+    }
     if !has_column(conn, "mls_outbox", "content")? {
         db(conn.execute(
             "ALTER TABLE mls_outbox ADD COLUMN content BLOB NOT NULL DEFAULT X''",
@@ -1660,11 +1670,12 @@ fn sent_message_row(row: &rusqlite::Row) -> rusqlite::Result<SentMessage> {
     Ok(SentMessage {
         send_id: row.get(0)?,
         peer: row.get(1)?,
-        content: row.get(2)?,
-        created_at: row.get(3)?,
-        delivered_at: row.get(4)?,
-        delivered: row.get::<_, i64>(5)? != 0,
-        deduplicated: row.get::<_, i64>(6)? != 0,
+        sender_device_id: row.get(2)?,
+        content: row.get(3)?,
+        created_at: row.get(4)?,
+        delivered_at: row.get(5)?,
+        delivered: row.get::<_, i64>(6)? != 0,
+        deduplicated: row.get::<_, i64>(7)? != 0,
     })
 }
 

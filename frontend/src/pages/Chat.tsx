@@ -58,6 +58,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { QRCodeSVG } from 'qrcode.react'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { MobileBottomNav } from '@/components/mobile/MobileBottomNav'
 import { useAppSelector } from '@/store'
 import { ChatService, ChatServiceError, type ChatMediaStorageView } from '@/chat/service'
 import type { ChatBackupView } from '@/chat/backup'
@@ -71,6 +72,8 @@ import {
 } from '@/chat/ChatAttachmentAction'
 import { ChatAttachmentViewer } from '@/chat/ChatAttachmentViewer'
 import { ChatVoiceNotePlayer } from '@/chat/ChatVoiceNotePlayer'
+import { ConversationRow } from '@/chat/ConversationRow'
+import { MessageScroller } from '@/chat/MessageScroller'
 import {
   aggregateLatestReactions,
   CHAT_REACTION_EMOJIS,
@@ -187,7 +190,7 @@ export default function Chat() {
 
   if (capabilities.isPending) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
+      <div className="flex h-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="sr-only">{t('chat.checkingSupport')}</span>
       </div>
@@ -195,7 +198,7 @@ export default function Chat() {
   }
   if (capabilities.isError) {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
+      <div className="flex h-full flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <AlertTriangle className="h-8 w-8 text-destructive" />
         <p className="text-sm text-muted-foreground">{t('chat.errors.capabilities')}</p>
         <Button onClick={() => navigate('/drive', { replace: true })}>
@@ -211,7 +214,6 @@ export default function Chat() {
 
 function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const isMobile = useIsMobile()
   const auth = useAppSelector((state) => state.auth)
   const masterKey = useMemo(
@@ -284,7 +286,6 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
   const [voiceRecording, setVoiceRecording] = useState(false)
   const [voiceStopping, setVoiceStopping] = useState(false)
   const [voiceElapsedMs, setVoiceElapsedMs] = useState(0)
-  const endRef = useRef<HTMLDivElement>(null)
   const attachmentInputRef = useRef<HTMLInputElement>(null)
   const captureInputRef = useRef<HTMLInputElement>(null)
   const voiceRecordingRef = useRef<VoiceRecordingSession | null>(null)
@@ -722,6 +723,10 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
         : [],
     [selectedKey, visibleHistory],
   )
+  const messageScrollerKeys = useMemo(
+    () => messages.map((message) => `${message.direction}:${message.id}`),
+    [messages],
+  )
   const activeTypingSenders = selectedKey
     ? Array.from(typingByConversation.get(selectedKey)?.keys() ?? [])
       .filter(sender => sender !== selfAddress)
@@ -1017,10 +1022,6 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
       setDeviceRevoking(null)
     }
   }
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }, [messages.length, selectedKey])
 
   useEffect(() => {
     if (!searchTarget || searchTarget.conversationKey !== selectedKey) return
@@ -1718,22 +1719,19 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
   }
 
   return (
-    <div className="fixed inset-0 flex bg-background text-foreground">
+    <div className="relative flex h-full min-h-0 overflow-hidden bg-background text-foreground">
       {showPeerList && (
-        <aside className="flex w-full shrink-0 flex-col border-r bg-sidebar md:w-96">
+        <aside
+          role={isMobile ? 'main' : undefined}
+          className={cn(
+          'flex w-full shrink-0 flex-col border-r bg-sidebar md:w-80 lg:w-96',
+          isMobile && !selectedConversation && 'pb-20',
+          )}
+        >
           <header
-            className="flex h-16 items-center gap-1 border-b px-2"
+            className="flex h-16 items-center gap-1 border-b px-3"
             data-testid="chat-sidebar-header"
           >
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              onClick={() => navigate('/drive')}
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="sr-only">{t('chat.backToFiles')}</span>
-            </Button>
             {selfAddress && (
               <ProfileEditor
                 profile={localProfile}
@@ -1744,7 +1742,7 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
             )}
             <div className="min-w-0 flex-1">
               <h1
-                className="truncate font-semibold"
+                className="truncate font-display text-lg font-semibold tracking-tight"
                 data-testid="chat-sidebar-title"
                 title={t('chat.title')}
               >
@@ -2194,43 +2192,31 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
               {requests.map(({ contact, conversation, message }) => {
                 const profile = profilesByPeer.get(contact.peer)
                 return (
-                <button
-                  key={contact.peer}
-                  type="button"
-                  onClick={() => setSelectedConversation(conversation)}
-                  className={cn(
-                    'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors',
-                    selectedAddress === contact.peer ? 'bg-warning-faint' : 'hover:bg-accent',
-                  )}
-                >
-                  <ProfileAvatar
-                    profile={profile}
-                    address={contact.peer}
-                    className="h-10 w-10 bg-warning-faint text-warning"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
-                      {profile?.displayName || contact.peer}
-                    </span>
-                    {profile?.displayName && (
-                      <span className="block truncate text-[11px] text-muted-foreground">
-                        {contact.peer}
-                      </span>
+                  <ConversationRow
+                    key={contact.peer}
+                    active={selectedAddress === contact.peer}
+                    tone="request"
+                    avatar={(
+                      <ProfileAvatar
+                        profile={profile}
+                        address={contact.peer}
+                        className="h-10 w-10 bg-warning-faint text-warning"
+                      />
                     )}
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {message
-                        ? replyPreview(
-                            message,
-                            t('chat.newerClient'),
-                            message.content.messageId
-                              ? mutationsByMessageId.get(message.content.messageId)
-                              : undefined,
-                            t('chat.mutations.deleted'),
-                          )
-                        : t('chat.newerClient')}
-                    </span>
-                  </span>
-                </button>
+                    title={profile?.displayName || contact.peer}
+                    secondaryIdentity={profile?.displayName ? contact.peer : undefined}
+                    preview={message
+                      ? replyPreview(
+                          message,
+                          t('chat.newerClient'),
+                          message.content.messageId
+                            ? mutationsByMessageId.get(message.content.messageId)
+                            : undefined,
+                          t('chat.mutations.deleted'),
+                        )
+                      : t('chat.newerClient')}
+                    onClick={() => setSelectedConversation(conversation)}
+                  />
                 )
               })}
             </div>
@@ -2285,75 +2271,53 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
                 const latest = visibleHistory.filter(message =>
                   conversationKey(message.conversation) === conversationKey(conversation)).at(-1)
                 return (
-                  <button
+                  <ConversationRow
                     key={groupId}
-                    type="button"
-                    onClick={() => setSelectedConversation(conversation)}
-                    className={cn(
-                      'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors',
-                      selectedKey === conversationKey(conversation)
-                        ? 'bg-primary/10'
-                        : 'hover:bg-accent',
+                    active={selectedKey === conversationKey(conversation)}
+                    avatar={(
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                        <MessageCircle className="h-5 w-5" />
+                      </span>
                     )}
-                    data-testid={`chat-group-${groupId}`}
-                  >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-                      <MessageCircle className="h-5 w-5" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">
-                        Group {groupId.slice(0, 8)}{group.status === 'closed' ? ' · Closed' : ''}
-                      </span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {latest
-                          ? replyPreview(
-                              latest,
-                              t('chat.newerClient'),
-                              latest.content.messageId
-                                ? mutationsByMessageId.get(latest.content.messageId)
-                                : undefined,
-                              t('chat.mutations.deleted'),
-                            )
-                          : `${group.currentRoster.length} members · epoch ${group.lastFinalizedEpoch}`}
-                      </span>
-                    </span>
-                  </button>
+                    title={`Group ${groupId.slice(0, 8)}${group.status === 'closed' ? ' · Closed' : ''}`}
+                    preview={latest
+                      ? replyPreview(
+                          latest,
+                          t('chat.newerClient'),
+                          latest.content.messageId
+                            ? mutationsByMessageId.get(latest.content.messageId)
+                            : undefined,
+                          t('chat.mutations.deleted'),
+                        )
+                      : `${group.currentRoster.length} members · epoch ${group.lastFinalizedEpoch}`}
+                    onClick={() => setSelectedConversation(conversation)}
+                    testId={`chat-group-${groupId}`}
+                  />
                 )
               })}
               {restoredHistoryGroups.map(({ groupId, message }) => {
                 const conversation: ConversationId = { kind: 'group', groupId }
                 return (
-                  <button
+                  <ConversationRow
                     key={`restored:${groupId}`}
-                    type="button"
-                    onClick={() => setSelectedConversation(conversation)}
-                    className={cn(
-                      'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors',
-                      selectedKey === conversationKey(conversation)
-                        ? 'bg-primary/10'
-                        : 'hover:bg-accent',
+                    active={selectedKey === conversationKey(conversation)}
+                    avatar={(
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                        <MessageCircle className="h-5 w-5" />
+                      </span>
                     )}
-                    data-testid={`chat-group-${groupId}`}
-                  >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-                      <MessageCircle className="h-5 w-5" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">
-                        Group {groupId.slice(0, 8)} · Protected history
-                      </span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {replyPreview(
-                          message,
-                          t('chat.newerClient'),
-                          message.content.messageId
-                            ? mutationsByMessageId.get(message.content.messageId)
-                            : undefined,
-                          t('chat.mutations.deleted'),
-                        )}
-                      </span>
-                    </span>
-                  </button>
+                    title={`Group ${groupId.slice(0, 8)} · Protected history`}
+                    preview={replyPreview(
+                      message,
+                      t('chat.newerClient'),
+                      message.content.messageId
+                        ? mutationsByMessageId.get(message.content.messageId)
+                        : undefined,
+                      t('chat.mutations.deleted'),
+                    )}
+                    onClick={() => setSelectedConversation(conversation)}
+                    testId={`chat-group-${groupId}`}
+                  />
                 )
               })}
             </div>
@@ -2361,26 +2325,17 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
 
           {selfAccount && (
             <div className="border-b p-2">
-              <button
-                type="button"
-                onClick={() => setSelectedConversation(directConversation(selfAccount))}
-                className={cn(
-                  'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors',
-                  noteSelected ? 'bg-primary/10' : 'hover:bg-accent',
+              <ConversationRow
+                active={noteSelected}
+                avatar={(
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                    <Bookmark className="h-5 w-5" />
+                  </span>
                 )}
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-                  <Bookmark className="h-5 w-5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">
-                    {t('chat.noteToSelf')}
-                  </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {t('chat.noteToSelfDescription')}
-                  </span>
-                </span>
-              </button>
+                title={t('chat.noteToSelf')}
+                preview={t('chat.noteToSelfDescription')}
+                onClick={() => setSelectedConversation(directConversation(selfAccount))}
+              />
             </div>
           )}
 
@@ -2402,44 +2357,29 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
                 (conversation.kind === 'group' ? conversation.groupId : '')
               const profile = profilesByPeer.get(label)
               return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setSelectedConversation(conversation)}
-                className={cn(
-                  'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors',
-                  selectedKey === key ? 'bg-primary/10' : 'hover:bg-accent',
-                )}
-              >
-                <ProfileAvatar
-                  profile={profile}
-                  address={label}
-                  className="h-10 w-10 bg-primary/15 text-primary"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">
-                    {profile?.displayName || label}
-                  </span>
-                  {profile?.displayName && (
-                    <span className="block truncate text-[11px] text-muted-foreground">
-                      {label}
-                    </span>
+                <ConversationRow
+                  key={key}
+                  active={selectedKey === key}
+                  avatar={(
+                    <ProfileAvatar
+                      profile={profile}
+                      address={label}
+                      className="h-10 w-10 bg-primary/15 text-primary"
+                    />
                   )}
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {replyPreview(
-                      message,
-                      t('chat.newerClient'),
-                      message.content.messageId
-                        ? mutationsByMessageId.get(message.content.messageId)
-                        : undefined,
-                      t('chat.mutations.deleted'),
-                    )}
-                  </span>
-                </span>
-                <span className="text-[11px] text-muted-foreground">
-                  {formatTime(message.content.sentAt)}
-                </span>
-              </button>
+                  title={profile?.displayName || label}
+                  secondaryIdentity={profile?.displayName ? label : undefined}
+                  preview={replyPreview(
+                    message,
+                    t('chat.newerClient'),
+                    message.content.messageId
+                      ? mutationsByMessageId.get(message.content.messageId)
+                      : undefined,
+                    t('chat.mutations.deleted'),
+                  )}
+                  meta={formatTime(message.content.sentAt)}
+                  onClick={() => setSelectedConversation(conversation)}
+                />
               )
             })}
           </div>
@@ -2450,7 +2390,12 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
         <main className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-16 shrink-0 items-center gap-3 border-b bg-card px-4">
             {isMobile && (
-              <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedConversation(null)}
+                aria-label={t('common.back')}
+              >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             )}
@@ -2490,11 +2435,11 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
             )}
             {(noteSelected || selectedGroup || selectedRestoredHistoryGroup) && (
               <ShieldCheck
-                className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                className="h-4 w-4 shrink-0 text-primary"
                 aria-label="End-to-end encrypted"
               />
             )}
-            {selectedConversation && (
+      {selectedConversation && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -2636,7 +2581,7 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
                             </span>
                             {invitationFeedback?.decision === 'accepted' && (
                               <span
-                                className="mt-1 block text-xs text-emerald-600 dark:text-emerald-400"
+                                className="mt-1 block text-xs text-primary"
                                 data-testid={`chat-group-invitation-feedback-${address}`}
                               >
                                 Accepted the encrypted invitation
@@ -2982,7 +2927,13 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto px-4 py-5 md:px-8">
+          <MessageScroller
+            conversationKey={selectedKey}
+            itemKeys={messageScrollerKeys}
+            timelineLabel={t('chat.timeline')}
+            jumpToLatestLabel={t('chat.jumpToLatest')}
+            className="px-4 py-5 md:px-8"
+          >
             {!selectedConversation && (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 {t('chat.chooseConversation')}
@@ -3061,9 +3012,8 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
                   {typingLabel}
                 </div>
               )}
-              <div ref={endRef} />
             </div>
-          </div>
+          </MessageScroller>
 
           <form className="border-t bg-card p-3 md:px-8" onSubmit={sendMessage}>
             {selectedGroupReadiness.blocksSending && (
@@ -3267,6 +3217,7 @@ function SupportedChat({ capabilities }: { capabilities: ChatCapabilities }) {
           </form>
         </main>
       )}
+      {isMobile && !selectedConversation && <MobileBottomNav />}
     </div>
   )
 }

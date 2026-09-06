@@ -968,7 +968,7 @@ export class ChatBackupCoordinator {
       return undefined
     }
     const records = new Map<string, BackupDisplayRecord>()
-    const recordSources = new Map<string, Set<number>>()
+    const recordSources = new Map<string, Map<number, number>>()
     let after = 0
     const manifest = this.status.manifest
     if (manifest) {
@@ -1294,42 +1294,63 @@ function transportStatus(error: unknown): number | undefined {
 
 function applyRecords(
   target: Map<string, BackupDisplayRecord>,
-  sources: Map<string, Set<number>>,
+  sources: Map<string, Map<number, number>>,
   records: BackupDisplayRecord[],
   sourceDeviceId?: number,
 ): void {
   for (const record of records) {
+    if (!Number.isSafeInteger(record.mutationSequence) || record.mutationSequence < 1) {
+      throw new Error('Chat backup record mutation sequence is invalid')
+    }
     const current = target.get(record.recordId)
-    if (!current) {
-      if (sourceDeviceId !== undefined && record.mutationSequence !== 1) {
+    if (sourceDeviceId === undefined) {
+      // A compacted base is a final snapshot and must contain each logical
+      // record exactly once. Its source-chain provenance is intentionally not
+      // part of the public V1 archive.
+      if (current) {
         throw new Error('Chat backup record mutation sequence is invalid')
       }
       target.set(record.recordId, record)
-      if (sourceDeviceId !== undefined) sources.set(record.recordId, new Set([sourceDeviceId]))
       continue
     }
-    if (sourceDeviceId !== undefined
-        && record.mutationSequence === current.mutationSequence
-        && JSON.stringify(record) === JSON.stringify(current)) {
-      // Every linked device receives the same account history and may race to
-      // protect a newly observed immutable display record. Treat one exact
-      // copy per independent device chain as convergence, while continuing to
-      // reject same-chain duplicates and all equal-sequence conflicts.
-      const currentSources = sources.get(record.recordId) ?? new Set<number>()
-      if (currentSources.has(sourceDeviceId)) {
-        throw new Error('Chat backup record mutation sequence is invalid')
-      }
-      currentSources.add(sourceDeviceId)
-      sources.set(record.recordId, currentSources)
-      continue
-    }
-    if (record.mutationSequence !== current.mutationSequence + 1) {
+
+    // mutationSequence is local to the device that emitted the segment. It is
+    // therefore validated independently for every (record, source-device)
+    // chain. A first post-compaction mutation may continue the sequence stored
+    // in the base; a new independent chain must begin at one.
+    const sourceSequences = sources.get(record.recordId) ?? new Map<number, number>()
+    const previousSourceSequence = sourceSequences.get(sourceDeviceId)
+    const validSequence = previousSourceSequence === undefined
+      ? record.mutationSequence === 1
+        || (current !== undefined
+          && record.mutationSequence === current.mutationSequence + 1)
+      : record.mutationSequence === previousSourceSequence + 1
+    if (!validSequence) {
       throw new Error('Chat backup record mutation sequence is invalid')
     }
-    target.set(record.recordId, record)
-    if (sourceDeviceId === undefined) sources.delete(record.recordId)
-    else sources.set(record.recordId, new Set([sourceDeviceId]))
+    sourceSequences.set(sourceDeviceId, record.mutationSequence)
+    sources.set(record.recordId, sourceSequences)
+
+    if (!current || preferBackupRecord(record, current)) {
+      target.set(record.recordId, record)
+    }
   }
+}
+
+/** Deterministic reduction for concurrent authorized device chains. A
+ * tombstone always dominates live content, then the highest mutation wins.
+ * Equal generations prefer confirmed delivery and finally canonical JSON as
+ * a stable order-independent tie-breaker. */
+function preferBackupRecord(
+  candidate: BackupDisplayRecord,
+  current: BackupDisplayRecord,
+): boolean {
+  if (candidate.tombstone !== current.tombstone) return candidate.tombstone
+  if (candidate.mutationSequence !== current.mutationSequence) {
+    return candidate.mutationSequence > current.mutationSequence
+  }
+  if (candidate.delivered !== current.delivered) return candidate.delivered
+  return JSON.stringify(candidate) > JSON.stringify(current)
 }
 
 function restoredMedia(records: StoredRecord[]): StoredBackupMedia[] {

@@ -1,8 +1,7 @@
 /**
  * Avatar helpers used by the mobile admin's user rows + user-detail header.
- * Ported from the Claude Design handoff (`kutup-admin-mobile.html`); shared
- * across the mobile admin so the colour assignment for a given username
- * stays stable everywhere it appears.
+ * Shared across mobile Admin so the color assignment for a given username is
+ * stable everywhere it appears.
  */
 
 /** Hash a username into one of 8 OKLCH hues. Stable per username. */

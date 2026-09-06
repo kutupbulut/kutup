@@ -1,39 +1,22 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAppSelector } from '@/store'
 import { selectIsLoggedIn, selectIsAdmin } from '@/store/authSlice'
 import { useAdminUsers, useAdminStats } from '@/api/hooks/useAdmin'
 import { Icon, ICONS } from '@/components/mobile/Icon'
 import { Button } from '@/components/ui/button'
-import { AdminSidebar, type AdminTab } from '@/components/admin/AdminSidebar'
+import { AdminSidebar } from '@/components/admin/AdminSidebar'
 import { AdminTopBar } from '@/components/admin/AdminTopBar'
 import { AdminOverviewTab } from '@/components/admin/AdminOverviewTab'
 import { AdminUsersTab } from '@/components/admin/AdminUsersTab'
 import { AdminSettingsTab } from '@/components/admin/AdminSettingsTab'
 import { AdminCreateUserDialog } from '@/components/admin/AdminCreateUserDialog'
+import { adminSectionPath, parseAdminSection, type AdminSectionId } from '@/components/admin/navigation'
 
 /**
- * Admin — desktop `/admin` page, redesigned per `kutup-admin.html`
- * (Claude Design handoff at `/tmp/kutup-admin-desktop-design/`).
- *
- * Shell composition:
- *
- *   ┌────────────┬───────────────────────────────────────────────┐
- *   │            │  AdminTopBar (title + subtitle + actions)    │
- *   │ AdminSide- ├───────────────────────────────────────────────┤
- *   │ bar        │                                               │
- *   │ (220px)    │   {Overview | Users | Settings}Tab            │
- *   │            │                                               │
- *   └────────────┴───────────────────────────────────────────────┘
- *
- * Tab state is local. Data hooks (`useAdminUsers`, `useAdminStats`) live
- * here so both the Overview KPI grid + Top-users + the Users-tab table
- * share one fetch (no double-request when switching tabs).
- *
- * Per kutup convention: the `AdminContent` split keeps the gating cheap
- * (one `useAppSelector` pair at the top; if the user isn't an admin we
- * redirect without running any of the admin hooks).
+ * Admin uses its own dedicated navigation so the workspace and administration
+ * rails never stack beside one another. Section URLs remain durable.
  */
 export default function Admin() {
   const isLoggedIn = useAppSelector(selectIsLoggedIn)
@@ -47,13 +30,17 @@ export default function Admin() {
 
 function AdminContent() {
   const { t } = useTranslation()
-  const [tab, setTab] = useState<AdminTab>('overview')
+  const navigate = useNavigate()
+  const { section } = useParams<{ section?: string }>()
+  const tab = parseAdminSection(section)
   const [createOpen, setCreateOpen] = useState(false)
 
   const { data: users, isLoading: usersLoading } = useAdminUsers()
   const { data: stats, isLoading: statsLoading } = useAdminStats()
 
-  const titles: Record<AdminTab, { title: string; subtitle: string }> = {
+  if (tab == null) return <Navigate to="/admin" replace />
+
+  const titles: Record<AdminSectionId, { title: string; subtitle: string }> = {
     overview: {
       title: t('admin.topBar.overviewTitle', 'Admin Overview'),
       subtitle: t(
@@ -91,16 +78,19 @@ function AdminContent() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <AdminSidebar tab={tab} onTab={setTab} />
+      <AdminSidebar
+        tab={tab}
+        onTab={(nextTab) => navigate(adminSectionPath(nextTab))}
+      />
 
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex min-w-0 flex-1 flex-col">
         <AdminTopBar
           title={titles[tab].title}
           subtitle={titles[tab].subtitle}
           action={action}
         />
 
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto px-8 py-6">
           {tab === 'overview' && (
             <AdminOverviewTab
               stats={stats}

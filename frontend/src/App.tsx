@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from 'react'
+import { lazy, Suspense, useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { Loader2 } from 'lucide-react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Toaster } from '@/components/ui/sonner'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import AdminRoute from '@/components/layout/AdminRoute'
+import AuthenticatedShell from '@/components/layout/AuthenticatedShell'
 import RouteErrorBoundary from '@/components/layout/RouteErrorBoundary'
 import { useAppDispatch, useAppSelector } from '@/store'
 import { store } from '@/store'
@@ -15,30 +17,38 @@ import { resolveApiBase } from '@/lib/apiBase'
 import { restoreSession, type RestoreRoute } from '@/lib/restoreSession'
 import { cancelChatMediaCacheRequestsV1 } from '@/chat/media'
 import { purgePrivateCiphertextCacheForAccountV1 } from '@/mediaCache'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import FirstLogin from './pages/FirstLogin'
-import Recovery from './pages/Recovery'
-import Drive from './pages/Drive'
-import Admin from './pages/Admin'
-import Settings from './pages/Settings'
-import PublicShare from './pages/PublicShare'
-import FileEditorPage from './pages/FileEditorPage'
-import ServerSelect from './pages/ServerSelect'
-import TrashPage from './pages/TrashPage'
-import Chat from './pages/Chat'
-import MobileSharedPage from './pages/mobile/MobileSharedPage'
-import MobileAccountPage from './pages/mobile/MobileAccountPage'
-import MobileProfilePage from './pages/mobile/account/MobileProfilePage'
-import MobileEncryptionKeysPage from './pages/mobile/account/MobileEncryptionKeysPage'
-import MobileSecurityPage from './pages/mobile/account/MobileSecurityPage'
-import MobileTotpSetupPage from './pages/mobile/account/MobileTotpSetupPage'
-import MobileAdminPage from './pages/mobile/account/admin/MobileAdminPage'
-import MobileAdminUserDetailPage from './pages/mobile/account/admin/MobileAdminUserDetailPage'
-import MobileAdminCreateUserPage from './pages/mobile/account/admin/MobileAdminCreateUserPage'
-import MobileNotificationsPage from './pages/mobile/account/MobileNotificationsPage'
-import MobileLanguagePage from './pages/mobile/account/MobileLanguagePage'
-import MobileAboutPage from './pages/mobile/account/MobileAboutPage'
+const Login = lazy(() => import('./pages/Login'))
+const Register = lazy(() => import('./pages/Register'))
+const FirstLogin = lazy(() => import('./pages/FirstLogin'))
+const Recovery = lazy(() => import('./pages/Recovery'))
+const Drive = lazy(() => import('./pages/Drive'))
+const Admin = lazy(() => import('./pages/Admin'))
+const Settings = lazy(() => import('./pages/Settings'))
+const PublicShare = lazy(() => import('./pages/PublicShare'))
+const FileEditorPage = lazy(() => import('./pages/FileEditorPage'))
+const ServerSelect = lazy(() => import('./pages/ServerSelect'))
+const TrashPage = lazy(() => import('./pages/TrashPage'))
+const Chat = lazy(() => import('./pages/Chat'))
+const MobileAccountPage = lazy(() => import('./pages/mobile/MobileAccountPage'))
+const MobileProfilePage = lazy(() => import('./pages/mobile/account/MobileProfilePage'))
+const MobileEncryptionKeysPage = lazy(() => import('./pages/mobile/account/MobileEncryptionKeysPage'))
+const MobileSecurityPage = lazy(() => import('./pages/mobile/account/MobileSecurityPage'))
+const MobileTotpSetupPage = lazy(() => import('./pages/mobile/account/MobileTotpSetupPage'))
+const MobileAdminPage = lazy(() => import('./pages/mobile/account/admin/MobileAdminPage'))
+const MobileAdminUserDetailPage = lazy(() => import('./pages/mobile/account/admin/MobileAdminUserDetailPage'))
+const MobileAdminCreateUserPage = lazy(() => import('./pages/mobile/account/admin/MobileAdminCreateUserPage'))
+const MobileLanguagePage = lazy(() => import('./pages/mobile/account/MobileLanguagePage'))
+const MobileAboutPage = lazy(() => import('./pages/mobile/account/MobileAboutPage'))
+
+function RouteFallback() {
+  const { t } = useTranslation()
+  return (
+    <div className="flex min-h-full flex-1 items-center justify-center" role="status">
+      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <span className="sr-only">{t('common.loading')}</span>
+    </div>
+  )
+}
 
 function snapshotFromState(): SessionPayload | null {
   const { auth } = store.getState()
@@ -178,6 +188,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<Navigate to={initialRoute} replace />} />
         <Route path="/server-select" element={<ServerSelect />} />
@@ -187,40 +198,35 @@ export default function App() {
         <Route path="/recover" element={<Recovery />} />
 
         <Route element={<ProtectedRoute />} errorElement={<RouteErrorBoundary />}>
-          <Route path="/drive" element={<Drive />} />
-          <Route path="/chat" element={<Chat />} />
-          {/* Mobile-only bottom-tab sibling routes — desktop redirects via useIsMobile.
-              `/drive/trash` is served on both; the page forks its layout. */}
-          <Route path="/drive/shared" element={<MobileSharedPage />} />
-          <Route path="/drive/trash" element={<TrashPage />} />
-          <Route path="/drive/account" element={<MobileAccountPage />} />
-          {/* Mobile Account sub-pages — each row has its own page so
-              "Profile" / "Encryption keys" / "Security" / etc. open
-              dedicated screens instead of all bouncing to /settings.
-              Desktop hits to these redirect to /settings via
-              MobileAccountSubPage. */}
-          <Route path="/drive/account/profile" element={<MobileProfilePage />} />
-          <Route path="/drive/account/encryption-keys" element={<MobileEncryptionKeysPage />} />
-          <Route path="/drive/account/security" element={<MobileSecurityPage />} />
-          <Route
-            path="/drive/account/security/totp-setup"
-            element={<MobileTotpSetupPage />}
-          />
-          <Route path="/drive/account/notifications" element={<MobileNotificationsPage />} />
-          <Route path="/drive/account/language" element={<MobileLanguagePage />} />
-          <Route path="/drive/account/admin" element={<MobileAdminPage />} />
-          <Route path="/drive/account/admin/new-user" element={<MobileAdminCreateUserPage />} />
-          <Route path="/drive/account/admin/users/:id" element={<MobileAdminUserDetailPage />} />
-          <Route path="/drive/account/about" element={<MobileAboutPage />} />
+          <Route element={<AuthenticatedShell />}>
+            <Route path="/drive" element={<Drive />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/drive/shared" element={<Drive initialViewMode="shared" />} />
+            <Route path="/drive/trash" element={<TrashPage />} />
+            <Route path="/drive/account" element={<MobileAccountPage />} />
+            <Route path="/drive/account/profile" element={<MobileProfilePage />} />
+            <Route path="/drive/account/encryption-keys" element={<MobileEncryptionKeysPage />} />
+            <Route path="/drive/account/security" element={<MobileSecurityPage />} />
+            <Route
+              path="/drive/account/security/totp-setup"
+              element={<MobileTotpSetupPage />}
+            />
+            <Route path="/drive/account/language" element={<MobileLanguagePage />} />
+            <Route path="/drive/account/admin" element={<MobileAdminPage />} />
+            <Route path="/drive/account/admin/new-user" element={<MobileAdminCreateUserPage />} />
+            <Route path="/drive/account/admin/users/:id" element={<MobileAdminUserDetailPage />} />
+            <Route path="/drive/account/about" element={<MobileAboutPage />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
           <Route path="/file/:cid/:fid" element={<FileEditorPage />} />
-          <Route path="/settings" element={<Settings />} />
           <Route element={<AdminRoute />}>
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/:section?" element={<Admin />} />
           </Route>
         </Route>
 
         <Route path="/s/:token" element={<PublicShare />} />
       </Routes>
+      </Suspense>
       <Toaster richColors closeButton />
     </BrowserRouter>
   )

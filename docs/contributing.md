@@ -300,10 +300,14 @@ The sweep does **not** persist progress — a crash mid-run means rerunning from
 ### Frontend (TypeScript)
 
 - Strict mode is enforced. No `any` types.
+- Authored frontend files use `.ts` and `.tsx` only; do not add `.js` or `.jsx`.
 - All cryptographic operations go in `src/crypto/`. Components and pages must not call libsodium directly.
 - KDF (Argon2id) runs in `src/workers/kdf.worker.ts` to avoid blocking the main thread.
 - State management uses Redux Toolkit slices. Keep slices thin — business logic goes in thunks or service functions.
 - API calls go through `src/api/client.ts`, which handles token injection and refresh.
+- Use semantic theme roles and the responsive ownership boundaries documented
+  in [`frontend.md`](frontend.md). A viewport change must not remount services
+  or trigger a mutation.
 
 ---
 

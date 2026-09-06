@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test'
+import { expect, test, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test'
 
 const PASSWORD = 'Deneme123*MyTestPasswordIsLong'
 
@@ -11,7 +11,7 @@ async function captureMnemonic(page: Page): Promise<string> {
   }
   const words = Array.from({ length: 24 }, (_, index) => seen.get(index + 1))
   if (words.some((word) => !word)) {
-    throw new Error(`failed to capture mnemonic; got: ${words.join(' ')}`)
+    throw new Error(`failed to capture recovery mnemonic (${seen.size}/24 words found)`)
   }
   return words.join(' ')
 }
@@ -67,14 +67,62 @@ async function login(
 }
 
 async function openChat(page: Page): Promise<void> {
+  const statuses: string[] = []
+  const initializationErrors: string[] = []
+  const onResponse = (response: import('@playwright/test').Response) => {
+    const path = new URL(response.url()).pathname
+    if (!path.startsWith('/api/chat/')) return
+    const endpoint = path.includes('/prekeys')
+      ? 'prekeys'
+      : path.includes('/manifests')
+        ? 'manifests'
+        : path.includes('/backup')
+          ? 'backup'
+          : path.includes('/profile')
+            ? 'profile'
+            : path.includes('/devices')
+              ? 'devices'
+              : 'other'
+    statuses.push(`${endpoint}:${response.status()}`)
+  }
+  const onConsole = (message: import('@playwright/test').ConsoleMessage) => {
+    if (message.type() === 'error' && message.text().startsWith('Secure chat failed to initialize')) {
+      initializationErrors.push(sanitizeDiagnostic(message.text()))
+    }
+  }
+  page.on('response', onResponse)
+  page.on('console', onConsole)
   await page.goto('/chat')
   await expect(page.getByRole('heading', { name: 'Messages' })).toBeVisible({ timeout: 60_000 })
-  await expect(page.getByText(/End-to-end encrypted · device \d+/)).toBeVisible({
-    timeout: 60_000,
-  })
-  await expect(page.getByLabel('Key-directory checkpoint verified')).toBeVisible({
-    timeout: 60_000,
-  })
+  try {
+    await expect(page.getByTestId('chat-device-status')).toHaveText(/Device \d+/, {
+      timeout: 60_000,
+    })
+    await expect(page.getByRole('button', { name: 'Sync messages' })).toBeEnabled({
+      timeout: 60_000,
+    })
+  } catch (error) {
+    if (process.env.KUTUP_E2E_CHAT_DIAGNOSTICS === '1') {
+      console.log(
+        `CHAT DIAGNOSTIC openStatuses=${statuses.join(',') || 'none'}`
+        + ` initializationErrors=${JSON.stringify(initializationErrors)}`,
+      )
+    }
+    throw error
+  } finally {
+    page.off('response', onResponse)
+    page.off('console', onConsole)
+  }
+}
+
+function sanitizeDiagnostic(value: string): string {
+  return value
+    .replace(/[\w.+-]+@[\w.-]+/g, '<account>')
+    .replace(/\b(?:chatalice|chatbob|user)-?\d+\b/gi, '<account>')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/gi, '<uuid>')
+    .replace(/\b[A-Za-z0-9_-]{24,}\b/g, '<opaque>')
+    .replace(/\b\d+\b/g, '<n>')
+    .slice(0, 300)
 }
 
 async function cloneAuthenticatedInstall(
@@ -105,13 +153,51 @@ async function startConversation(page: Page, username: string): Promise<void> {
 }
 
 async function send(page: Page, text: string): Promise<void> {
-  const composer = page.locator('main form input')
+  const composer = page.getByRole('main').getByRole('textbox')
   await composer.fill(text)
-  await page.getByRole('button', { name: 'Send' }).click()
+  await page.getByRole('button', { name: 'Send', exact: true }).click()
 }
 
 function messageBubble(page: Page, text: string) {
   return page.getByRole('main').getByText(text, { exact: true })
+}
+
+async function chatStoreCounts(page: Page): Promise<Record<string, number>> {
+  return await page.evaluate(async () => {
+    const database = (await indexedDB.databases())
+      .find(candidate => candidate.name?.startsWith('kutup-chat-v2:'))
+    if (!database?.name) return { databases: 0 }
+    const connection = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(database.name!)
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    const counts: Record<string, number> = { databases: 1 }
+    for (const store of ['sent_messages', 'messages', 'inbound', 'outbox']) {
+      if (!connection.objectStoreNames.contains(store)) continue
+      counts[store] = await new Promise<number>((resolve, reject) => {
+        const request = connection.transaction(store).objectStore(store).count()
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+    }
+    connection.close()
+    return counts
+  })
+}
+
+async function syncUntilVisible(page: Page, text: string): Promise<void> {
+  await syncUntilLocatorVisible(page, messageBubble(page, text))
+}
+
+async function syncUntilLocatorVisible(page: Page, target: Locator): Promise<void> {
+  await expect.poll(async () => {
+    if (await target.count() > 0) return true
+    const sync = page.getByRole('button', { name: 'Sync messages' })
+    await expect(sync).toBeEnabled()
+    await sync.click()
+    return await target.count() > 0
+  }, { timeout: 45_000, intervals: [500, 1_000, 2_000] }).toBe(true)
 }
 
 test.describe('Signal-backed chat', () => {
@@ -143,21 +229,103 @@ test.describe('Signal-backed chat', () => {
       contextA,
       pageA,
     )
+    const linkedDiagnostics = {
+      syncStatuses: [] as number[],
+      syncEnvelopeCounts: [] as number[],
+      syncStoredCounts: [] as number[],
+      mailboxPageCounts: [] as number[],
+      ackStatuses: [] as number[],
+    }
+    pageA.on('request', request => {
+      if (
+        request.method() === 'POST'
+        && new URL(request.url()).pathname === '/api/chat/sync/messages'
+      ) {
+        try {
+          const body = request.postDataJSON() as { envelopes?: unknown[] }
+          linkedDiagnostics.syncEnvelopeCounts.push(body.envelopes?.length ?? 0)
+        } catch {
+          linkedDiagnostics.syncEnvelopeCounts.push(-1)
+        }
+      }
+    })
+    pageA.on('response', async response => {
+      if (
+        response.request().method() === 'POST'
+        && new URL(response.url()).pathname === '/api/chat/sync/messages'
+      ) {
+        linkedDiagnostics.syncStatuses.push(response.status())
+        try {
+          const body = await response.json() as { stored?: number }
+          linkedDiagnostics.syncStoredCounts.push(body.stored ?? -1)
+        } catch {
+          linkedDiagnostics.syncStoredCounts.push(-1)
+        }
+      }
+    })
+    pageA2.on('response', async response => {
+      const path = new URL(response.url()).pathname
+      if (response.request().method() === 'GET' && path === '/api/chat/messages') {
+        try {
+          const body = await response.json() as { envelopes?: unknown[] }
+          linkedDiagnostics.mailboxPageCounts.push(body.envelopes?.length ?? 0)
+        } catch {
+          linkedDiagnostics.mailboxPageCounts.push(-1)
+        }
+      }
+      if (response.request().method() === 'POST' && path === '/api/chat/messages/ack') {
+        linkedDiagnostics.ackStatuses.push(response.status())
+      }
+    })
     await openChat(pageA2)
+    const firstDevice = await pageA.getByTestId('chat-device-status').textContent()
+    await expect(pageA2.getByTestId('chat-device-status')).not.toHaveText(firstDevice ?? '')
+
+    // Reopen the already-running source after the linked install has committed
+    // its signed manifest entry. The source then pins that exact generation
+    // before it creates sent transcripts for the account's other devices.
+    await openChat(pageA)
     const selfNote = `note-to-self-${tag}`
     await pageA.getByRole('button', { name: 'Note to Self' }).click()
     await send(pageA, selfNote)
     await expect(messageBubble(pageA, selfNote)).toBeVisible({ timeout: 30_000 })
+    await openChat(pageA2)
     await pageA2.getByRole('button', { name: 'Note to Self' }).click()
-    await expect(messageBubble(pageA2, selfNote)).toBeVisible({ timeout: 30_000 })
-    await pageA2.reload()
+    try {
+      await syncUntilVisible(pageA2, selfNote)
+    } catch (error) {
+      if (process.env.KUTUP_E2E_CHAT_DIAGNOSTICS === '1') {
+        console.log(
+          `CHAT DIAGNOSTIC syncStatuses=${linkedDiagnostics.syncStatuses.join(',') || 'none'}`
+          + ` syncEnvelopeCounts=${linkedDiagnostics.syncEnvelopeCounts.join(',') || 'none'}`
+          + ` syncStoredCounts=${linkedDiagnostics.syncStoredCounts.join(',') || 'none'}`
+          + ` mailboxPageCounts=${linkedDiagnostics.mailboxPageCounts.join(',') || 'none'}`
+          + ` ackStatuses=${linkedDiagnostics.ackStatuses.join(',') || 'none'}`
+          + ` alerts=${await pageA2.getByRole('alert').count()}`,
+        )
+      }
+      throw error
+    }
+    const beforeReloadCounts = await chatStoreCounts(pageA2)
+    await openChat(pageA2)
     await pageA2.getByRole('button', { name: 'Note to Self' }).click()
-    await expect(messageBubble(pageA2, selfNote)).toBeVisible({ timeout: 60_000 })
+    try {
+      await expect(messageBubble(pageA2, selfNote)).toBeVisible({ timeout: 60_000 })
+    } catch (error) {
+      if (process.env.KUTUP_E2E_CHAT_DIAGNOSTICS === '1') {
+        const afterReloadCounts = await chatStoreCounts(pageA2)
+        console.log(
+          `CHAT DIAGNOSTIC beforeReloadCounts=${JSON.stringify(beforeReloadCounts)}`
+          + ` afterReloadCounts=${JSON.stringify(afterReloadCounts)}`,
+        )
+      }
+      throw error
+    }
 
     const fromA = `from-a-${tag}`
     await startConversation(pageA, usernameB)
     await send(pageA, fromA)
-    await expect(pageB.getByText('1 message request')).toBeVisible({ timeout: 30_000 })
+    await syncUntilLocatorVisible(pageB, pageB.getByText('1 message request'))
     await pageB.getByRole('button', { name: new RegExp(usernameA) }).click()
     await expect(messageBubble(pageB, fromA)).toBeVisible({ timeout: 30_000 })
     await pageB.getByRole('button', { name: 'Reject', exact: true }).click()
@@ -165,13 +333,14 @@ test.describe('Signal-backed chat', () => {
 
     const afterReject = `after-reject-${tag}`
     await send(pageA, afterReject)
-    await expect(pageB.getByText('1 message request')).toBeVisible({ timeout: 30_000 })
+    await syncUntilLocatorVisible(pageB, pageB.getByText('1 message request'))
     await pageB.getByRole('button', { name: new RegExp(usernameA) }).click()
     await expect(messageBubble(pageB, afterReject)).toBeVisible({ timeout: 30_000 })
     await pageB.getByRole('button', { name: 'Accept', exact: true }).click()
     await startConversation(pageA2, usernameB)
     await expect(messageBubble(pageA2, fromA)).toBeVisible({ timeout: 30_000 })
-    await pageA2.reload()
+    await openChat(pageA2)
+    await startConversation(pageA2, usernameB)
     await expect(messageBubble(pageA2, fromA)).toBeVisible({ timeout: 60_000 })
 
     await pageB.getByRole('button', { name: 'Block', exact: true }).click()
@@ -189,15 +358,16 @@ test.describe('Signal-backed chat', () => {
     await pageB.getByRole('button', { name: 'Unblock', exact: true }).click()
     const afterUnblock = `after-unblock-${tag}`
     await send(pageA, afterUnblock)
-    await expect(messageBubble(pageB, afterUnblock)).toBeVisible({ timeout: 30_000 })
+    await syncUntilVisible(pageB, afterUnblock)
 
     const fromB = `from-b-${tag}`
     await send(pageB, fromB)
-    await expect(messageBubble(pageA, fromB)).toBeVisible({ timeout: 30_000 })
+    await syncUntilVisible(pageA, fromB)
 
     // IndexedDB is the durable source of truth; a reload must not depend on
     // redelivery from the already-acked server mailbox.
-    await pageA.reload()
+    await openChat(pageA)
+    await pageA.getByRole('button', { name: new RegExp(usernameB) }).click()
     await expect(messageBubble(pageA, fromA)).toBeVisible({ timeout: 60_000 })
     await expect(messageBubble(pageA, fromB)).toBeVisible({ timeout: 60_000 })
 

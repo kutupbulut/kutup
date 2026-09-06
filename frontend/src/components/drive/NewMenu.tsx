@@ -16,6 +16,8 @@ export interface NewMenuActions {
 }
 
 interface NewMenuItemsProps extends NewMenuActions {
+  /** Whether the current folder accepts newly created or uploaded content. */
+  canCreate?: boolean
   /** Show the Upload entry (omit when the topbar already has its own button). */
   showUpload?: boolean
   /** Show the federated "Add remote share" entry. */
@@ -31,6 +33,7 @@ export function NewMenuItems({
   onNewOffice,
   onUpload,
   onAddRemote,
+  canCreate = true,
   showUpload = false,
   showAddRemote = true,
   showOffice = true,
@@ -38,30 +41,30 @@ export function NewMenuItems({
   const { t } = useTranslation()
   return (
     <>
-      <DropdownMenuItem onSelect={onNewFolder}>
+      <DropdownMenuItem onSelect={onNewFolder} disabled={!canCreate}>
         <FolderPlus className="mr-2 h-4 w-4" />
         {t('newMenu.folder')}
       </DropdownMenuItem>
-      <DropdownMenuItem onSelect={onNewNote}>
+      <DropdownMenuItem onSelect={onNewNote} disabled={!canCreate}>
         <FileText className="mr-2 h-4 w-4" />
         {t('newMenu.note')}
       </DropdownMenuItem>
       {showOffice && onNewOffice && (
         <>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => onNewOffice('docx')}>
+          <DropdownMenuItem onSelect={() => onNewOffice('docx')} disabled={!canCreate}>
             <FileText className="mr-2 h-4 w-4 text-blue-500" />
             {t('newMenu.docx')}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onNewOffice('xlsx')}>
+          <DropdownMenuItem onSelect={() => onNewOffice('xlsx')} disabled={!canCreate}>
             <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-500" />
             {t('newMenu.xlsx')}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onNewOffice('pptx')}>
+          <DropdownMenuItem onSelect={() => onNewOffice('pptx')} disabled={!canCreate}>
             <Presentation className="mr-2 h-4 w-4 text-orange-500" />
             {t('newMenu.pptx')}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onNewOffice('excalidraw')}>
+          <DropdownMenuItem onSelect={() => onNewOffice('excalidraw')} disabled={!canCreate}>
             <Pencil className="mr-2 h-4 w-4 text-pink-500" />
             {t('newMenu.excalidraw')}
           </DropdownMenuItem>
@@ -70,7 +73,7 @@ export function NewMenuItems({
       {showUpload && onUpload && (
         <>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={onUpload}>
+          <DropdownMenuItem onSelect={onUpload} disabled={!canCreate}>
             <UploadIcon className="mr-2 h-4 w-4" />
             {t('newMenu.uploadFiles')}
           </DropdownMenuItem>

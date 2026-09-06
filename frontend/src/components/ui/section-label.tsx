@@ -5,8 +5,7 @@ import { cn } from '@/lib/utils'
  * SectionLabel — small uppercase divider used above grouped row-lists (e.g.
  * "FOLDERS · 6"). Optional `action` slot renders on the right.
  *
- * Style ported from the design prototype: 11.5px / 600 / uppercase, letter-
- * spacing 0.06em, tertiary text color.
+ * Uses compact uppercase text and a tertiary color for visual hierarchy.
  */
 interface SectionLabelProps {
   children: ReactNode

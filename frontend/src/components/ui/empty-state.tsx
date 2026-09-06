@@ -7,9 +7,8 @@ import { cn } from '@/lib/utils'
  * Used by Trash (empty trash hero), Shared ("Nothing shared yet"), and search
  * empty results.
  *
- * Pattern ported from the design prototype: a 56–64px rounded tile holds the
- * icon, then a 14–15px bold title, then a 12px tertiary subtitle, then an
- * optional CTA button.
+ * A rounded icon tile leads a concise title, supporting text, and optional
+ * action.
  */
 interface EmptyStateProps {
   icon: IconName

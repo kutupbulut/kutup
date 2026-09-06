@@ -1,6 +1,8 @@
 # Production-readiness roadmap
 
-Kutup is **pre-production**: there is no public release yet (until the first `v*` / `desktop-v*` git tag — see CLAUDE.md). This document is the canonical list of everything between today and "ready to tag v1".
+Kutup is **pre-production**: there is no public release yet (until the first
+`v*` / `desktop-v*` git tag). This document is the canonical list of everything
+between today and "ready to tag v1".
 
 It is the bridge between `docs/` (current state, authoritative) and
 `docs/research/` (forward-looking design notes that may never ship). The blocker
@@ -76,7 +78,9 @@ The exact third-party ownership boundary is
 
 ### Signed builds
 
-CLAUDE.md explicitly notes: **"Builds are currently unsigned."** macOS Gatekeeper and Windows SmartScreen treat unsigned `.dmg` / `.msi` as untrusted; non-technical users see scary warnings.
+Desktop release builds are currently unsigned. macOS Gatekeeper and Windows
+SmartScreen treat unsigned `.dmg` / `.msi` as untrusted; non-technical users
+see scary warnings.
 
 | What's needed | Where |
 |---|---|
@@ -170,9 +174,11 @@ Desktop selection is **explicitly carved out** — kutup keeps its existing no-l
 | Frontend: replace MobileBottomNav with a selection action bar while active | shell |
 | Frontend: replace MobilePageHeader with the selection top bar while active | shell |
 
-### Responsive web · files chip filters + List⇄Grid + swipe
+### Responsive web · optional file filters, view modes, and gestures
 
-Today the Files tab shows category chips (All / Recent / Photos / Documents / PDFs / Audio) but they're visual-only. Same for the List/Grid toggle.
+The current Files page intentionally removed the old non-functional category
+chips and list/grid toggle. Add them only with complete filtering, persistence,
+keyboard, and touch behavior.
 
 | What's needed | Where |
 |---|---|
@@ -206,9 +212,12 @@ Native iOS/Android notifications for shared-file and Chat events. Not v1.
 | Backend: APNS sender + per-user device-token registry | new |
 | Native clients: APNS/FCM registration, permission, and presentation | sibling iOS/Android repositories |
 
-### Responsive/native mobile · recovery-phrase verification
+### Responsive/native mobile · recovery-phrase management
 
-The mobile Encryption Keys page renders the recovery phrase. There's no "verify you wrote it down" word-by-word test like the desktop has during onboarding. Production self-hosters lose users to "I lost my recovery phrase" support tickets.
+The mobile Encryption Keys page explains the recovery boundary and links to
+account recovery; it does not claim that an authenticated session can display
+or rotate the stored phrase. A future phrase-rotation product needs a separate
+security design, backend contract, and word-by-word confirmation flow.
 
 ### Backup / restore CLI
 
@@ -412,18 +421,13 @@ traffic is enabled.
 
 ## Polish / smaller items (future)
 
-### Desktop Drive redesign (chat1.md in the design bundle)
+### Files workspace follow-up
 
-The mobile UI pulled ahead. The desktop Drive page hasn't gotten the color-palette refresh's full follow-through. From the design's `kutup-drive.html`:
-
-- Slide-in details panel on right-click (kutup currently uses a context menu)
-- Folder color picker
-- Sort controls (Name / Modified / Size with asc/desc)
-- Live search results
-- Upload progress bar (driven by existing `UploadState`)
-- Drag-to-upload overlay
-- Keyboard-shortcuts panel — **carved out**: kutup's existing implementation stays per user feedback ("for keyboard shortcut panel also our implementation is definitely better")
-- Per-file viewers (Excalidraw / photo / PDF) — **carved out**: kept as-is
+The Polar Workspace redesign now provides the responsive Files header,
+folder-scoped search, creation menus, folder colors, sorting, selection,
+upload progress, drag/drop, contextual empty states, and right-side details
+inspector. Future work here is performance measurement for very large folders
+and optional filtering/view modes backed by real behavior.
 
 ### Federation polish
 
@@ -436,8 +440,8 @@ implemented; these are product-lifecycle improvements above it.
 - Tauri session-persistence — no E2E test today
 - Browser-level Drive federation UI coverage (the isolated two-server server
   harness already covers the complete Drive and Chat transport lifecycle)
-- Responsive mobile layouts and dedicated native-app flows lack complete
-  automated/device coverage
+- Responsive web has an automated phone/desktop axe and state-transition gate;
+  physical-device browser coverage and dedicated native-app flows remain open
 
 ### Performance baselines
 
@@ -445,7 +449,11 @@ implemented; these are product-lifecycle improvements above it.
 
 ### Tauri shell · real OnlyOffice / Office docs
 
-Desktop OnlyOffice was stripped from the Tauri build to avoid the OOM on `tauri::generate_context!()` (the ~2.6GB SDK gets embedded as a static byte array). Same applies to mobile. The follow-up sketched in CLAUDE.md is "load the SDK from `${serverUrl}/onlyoffice/…` so the app streams it from the user's server" — that's a real piece of work.
+Desktop OnlyOffice was stripped from the Tauri build to avoid the OOM on
+`tauri::generate_context!()` (the ~2.6GB SDK gets embedded as a static byte
+array). The same applies to mobile. Loading the SDK from
+`${serverUrl}/onlyoffice/…` so the shell streams it from the user's server
+remains separate Tauri work.
 
 ### Responsive web · federation share-with from sheet
 

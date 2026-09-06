@@ -133,8 +133,8 @@ services:
     image: nginx:alpine
     restart: unless-stopped
     ports:
-      - "38080:80"
-      - "38443:443"
+      - "${KUTUP_HTTP_PORT:-38080}:80"
+      - "${KUTUP_HTTPS_PORT:-38443}:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro

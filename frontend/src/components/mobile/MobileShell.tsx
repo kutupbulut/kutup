@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react'
 import { MobileBottomNav } from '@/components/mobile/MobileBottomNav'
-import { useTrash } from '@/hooks/useTrash'
 import { cn } from '@/lib/utils'
 
 /**
- * MobileShell — page wrapper used by the four mobile-only tab pages.
+ * MobileShell — page wrapper for the mobile Files and Account route trees.
  *
  * Provides the full-viewport flex column, the bottom nav, and the
  * scroll-padding adjustment so the last list item never sits behind the
@@ -35,8 +34,6 @@ interface MobileShellProps {
 }
 
 export function MobileShell({ children, hideNav, className }: MobileShellProps) {
-  const trash = useTrash()
-
   return (
     <div
       className={cn(
@@ -44,10 +41,10 @@ export function MobileShell({ children, hideNav, className }: MobileShellProps) 
         className,
       )}
     >
-      {children}
-      {!hideNav && (
-        <MobileBottomNav badges={{ trash: trash.count > 0 ? trash.count : null }} />
-      )}
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {children}
+      </main>
+      {!hideNav && <MobileBottomNav />}
     </div>
   )
 }

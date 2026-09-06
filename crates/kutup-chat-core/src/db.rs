@@ -209,6 +209,11 @@ pub(crate) enum OutboxLeg {
 pub struct SentMessage {
     pub send_id: String,
     pub peer: String,
+    /// Device that originated the logical send. Linked-device transcripts
+    /// preserve the authenticated envelope sender instead of attributing the
+    /// message to whichever installation observed it.
+    #[serde(default)]
+    pub sender_device_id: u32,
     /// `serde_json` of [`ChatContent`](kutup_chat_proto::ChatContent).
     pub content: Vec<u8>,
     pub created_at: i64,

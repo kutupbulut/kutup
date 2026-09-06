@@ -24,9 +24,8 @@ import { cn } from '@/lib/utils'
  * inline (same `FOLDER_COLORS` table the desktop CollectionGrid uses);
  * tapping a swatch calls `onChangeColor` and closes the sheet.
  *
- * Action wiring: each handler is optional. Sheet rows for unwired actions
- * are hidden so PR 2's partial backing (e.g. no Share dialog on mobile yet)
- * doesn't surface dead buttons.
+ * Action wiring: each handler is optional. Sheet rows for unavailable actions
+ * are hidden rather than presenting controls that cannot complete.
  */
 
 export interface MobileItemSheetProps {
@@ -37,6 +36,7 @@ export interface MobileItemSheetProps {
   onRename?: (item: Collection | DecryptedFile) => void
   onShare?: (item: Collection) => void
   onDownload?: (file: DecryptedFile) => void
+  onDownloadFolder?: (folder: Collection) => void
   onDelete?: (item: Collection | DecryptedFile) => void
   /** Folder-only: pick a color from the desktop's FOLDER_COLORS palette. */
   onChangeColor?: (folder: Collection, color: string | null) => void
@@ -55,6 +55,7 @@ export function MobileItemSheet({
   onRename,
   onShare,
   onDownload,
+  onDownloadFolder,
   onDelete,
   onChangeColor,
 }: MobileItemSheetProps) {
@@ -118,6 +119,17 @@ export function MobileItemSheet({
           />
         )}
 
+        {folder && onDownloadFolder && (
+          <SheetAction
+            icon="download"
+            label={t('details.downloadFolder', 'Download as ZIP')}
+            onClick={() => {
+              onDownloadFolder(folder)
+              onClose()
+            }}
+          />
+        )}
+
         {file && onDownload && (
           <SheetAction
             icon="download"
@@ -129,7 +141,7 @@ export function MobileItemSheet({
           />
         )}
 
-        {folder && onShare && (
+        {folder && !folder.isRemote && onShare && (
           <SheetAction
             icon="share"
             label={t('mobile.item.share', 'Share')}
@@ -140,7 +152,7 @@ export function MobileItemSheet({
           />
         )}
 
-        {onRename && (
+        {onRename && (!folder || !folder.isRemote) && (
           <SheetAction
             icon="rename"
             label={t('mobile.item.rename', 'Rename')}
@@ -154,7 +166,9 @@ export function MobileItemSheet({
         {onDelete && (
           <SheetAction
             icon="trash"
-            label={t('mobile.item.trash', 'Move to Trash')}
+            label={folder?.isRemote
+              ? t('folders.removeShare', 'Remove share')
+              : t('mobile.item.trash', 'Move to Trash')}
             variant="danger"
             onClick={() => {
               onDelete(item)

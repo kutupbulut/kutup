@@ -23,7 +23,9 @@ async function captureMnemonic(page: Page): Promise<string> {
     if (n >= 1 && n <= 24 && !seen.has(n)) seen.set(n, m[2])
   }
   const words = Array.from({ length: 24 }, (_, i) => seen.get(i + 1))
-  if (words.some((w) => !w)) throw new Error(`failed to capture mnemonic; got: ${words.join(' ')}`)
+  if (words.some((w) => !w)) {
+    throw new Error(`failed to capture recovery mnemonic (${seen.size}/24 words found)`)
+  }
   return words.join(' ')
 }
 
@@ -130,17 +132,42 @@ test.describe('two-user collaboration', () => {
       .or(driveA.locator('input[autocomplete=email]'))
       .first()
       .fill(emailB)
+    let lookupStatus = 0
+    let localShareStatus = 0
+    let federatedShareStatus = 0
+    driveA.on('response', response => {
+      const path = new URL(response.url()).pathname
+      if (path.startsWith('/api/users/by-email/')) lookupStatus = response.status()
+      if (/\/api\/collections\/[^/]+\/share$/.test(path)) localShareStatus = response.status()
+      if (/\/api\/collections\/[^/]+\/federated-shares$/.test(path)) {
+        federatedShareStatus = response.status()
+      }
+    })
+    const shareDialog = driveA.getByRole('dialog')
     await driveA.getByRole('button', { name: /^share$/i }).click()
-    await driveA.waitForTimeout(2_000)
+    await expect(shareDialog).toBeHidden({ timeout: 30_000 })
+    if (process.env.KUTUP_E2E_COLLAB_DIAGNOSTICS === '1') {
+      console.log(
+        `COLLAB DIAGNOSTIC lookup=${lookupStatus} local=${localShareStatus} federated=${federatedShareStatus}`,
+      )
+    }
+    expect(lookupStatus).toBe(200)
+    expect(federatedShareStatus).toBe(0)
+    expect(localShareStatus).toBe(201)
 
     // --- userB logs in, opens the shared folder + note ---
     const driveB = await loginAs(ctxB, emailB, NEW_PW)
-    await driveB.getByRole('button', { name: /shared with me/i }).click()
-    await expect(driveB.getByText(folderName, { exact: false })).toBeVisible({ timeout: 30_000 })
-    await driveB.getByText(folderName, { exact: false }).first().dblclick()
-    await driveB.waitForTimeout(1_500)
+    const primaryNavigation = driveB.getByRole('navigation', { name: 'Primary navigation' })
+    await primaryNavigation.getByRole('link', { name: 'Shared with me', exact: true }).click()
+    const sharedFolder = driveB.getByRole('button', { name: `Open folder ${folderName}` })
+    await expect.poll(async () => {
+      if (await sharedFolder.count() > 0) return true
+      await driveB.reload()
+      return await sharedFolder.count() > 0
+    }, { timeout: 30_000, intervals: [500, 1_000, 2_000] }).toBe(true)
+    await sharedFolder.click()
     const noteTabBP = ctxB.waitForEvent('page', { timeout: 30_000 })
-    await driveB.getByText(noteName, { exact: false }).first().dblclick()
+    await driveB.getByRole('button', { name: `Open file ${noteName}` }).click()
     const noteB = await noteTabBP
     await noteB.waitForLoadState('domcontentloaded')
     noteB.on('console', (m) => {

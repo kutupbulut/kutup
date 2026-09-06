@@ -15,6 +15,7 @@ disagrees with current behavior.
 | System boundaries, keys, storage, and federation | [`architecture.md`](architecture.md) |
 | HTTP operations and payloads | [`api.md`](api.md) and `GET /api-docs/openapi.json` |
 | Local development and required test gates | [`contributing.md`](contributing.md) and [`../tests/e2e/README.md`](../tests/e2e/README.md) |
+| Web UI architecture, themes, and responsive rules | [`frontend.md`](frontend.md) |
 | Remaining release work | [`roadmap.md`](roadmap.md) |
 
 ## Current protocol and security references

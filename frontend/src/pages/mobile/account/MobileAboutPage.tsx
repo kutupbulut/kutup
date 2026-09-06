@@ -8,14 +8,12 @@ import { PressableRow } from '@/components/ui/pressable-row'
 /**
  * MobileAboutPage — `/drive/account/about`.
  *
- * Static info: version, brand tagline, and links to source / privacy /
+ * Static info: version, brand tagline, and links to source /
  * license / third-party notices. The version string comes from the build-time
  * `VITE_APP_VERSION` env (set by Vite); if missing it falls back to "dev".
  */
 export default function MobileAboutPage() {
   const { t } = useTranslation()
-  // Vite's import.meta.env is typed via vite/client but kutup hasn't added
-  // that triple-slash reference; cast through unknown to keep tsc happy.
   const env = (import.meta as unknown as { env?: Record<string, string> }).env
   const version = env?.VITE_APP_VERSION ?? 'dev'
 
@@ -25,7 +23,7 @@ export default function MobileAboutPage() {
         <KutupLogo size={56} />
         <div className="mt-3 text-[18px] font-semibold text-text-primary">Kutup</div>
         <div className="text-[12px] text-text-tertiary mt-1">
-          {t('mobile.account.tagline', 'Kutup · End-to-end encrypted drive')}
+          {t('mobile.account.tagline', 'Kutup · End-to-end encrypted workspace')}
         </div>
         <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-sunken rounded-[10px]">
           <span className="text-[11.5px] font-mono text-text-tertiary">v{version}</span>
@@ -34,7 +32,7 @@ export default function MobileAboutPage() {
 
       <Surface>
         <PressableRow
-          onClick={() => window.open('https://github.com/kutupbulut/kutup', '_blank', 'noopener')}
+          onClick={() => window.open('https://github.com/kutupbt/kutup', '_blank', 'noopener')}
           last={false}
           ariaLabel={t('mobile.account.about.source', 'Source code')}
         >
@@ -45,14 +43,14 @@ export default function MobileAboutPage() {
             <div className="text-sm font-medium text-text-primary">
               {t('mobile.account.about.source', 'Source code')}
             </div>
-            <div className="text-[12px] text-text-tertiary mt-0.5">github.com/kutupbulut/kutup</div>
+            <div className="text-[12px] text-text-tertiary mt-0.5">github.com/kutupbt/kutup</div>
           </div>
           <Icon d={ICONS.chevronRight} size={16} color="var(--text-tertiary)" />
         </PressableRow>
         <PressableRow
           onClick={() =>
             window.open(
-              'https://github.com/kutupbulut/kutup/blob/master/TRADEMARK.md',
+              'https://github.com/kutupbt/kutup/blob/master/TRADEMARK.md',
               '_blank',
               'noopener',
             )
@@ -74,7 +72,7 @@ export default function MobileAboutPage() {
         <PressableRow
           onClick={() =>
             window.open(
-              'https://github.com/kutupbulut/kutup/blob/master/LICENSE',
+              'https://github.com/kutupbt/kutup/blob/master/LICENSE',
               '_blank',
               'noopener',
             )

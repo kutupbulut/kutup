@@ -11,8 +11,8 @@ import type { UserRow } from '@/types/api'
  * the menu clamps itself to the viewport so it never clips off-screen.
  * Click-outside / Escape both close the menu.
  *
- * Every action here is wired end-to-end — no silent stubs per the CLAUDE.md
- * "pre-production, not pre-quality" rule.
+ * Every visible action is wired end-to-end; unavailable operations are not
+ * presented.
  *
  *  - **Edit quota** — opens a small dialog wired to `useUpdateUser`.
  *  - **Make / Remove admin** — `useUpdateUser({ isAdmin })`.

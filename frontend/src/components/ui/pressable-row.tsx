@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils'
  * `surface-raised` when held). Use inside `<Surface>` containers. Set
  * `last` on the final row to suppress its bottom border.
  *
- * Matches the design prototype's `PressableRow` — touch + mouse handlers both
- * drive the pressed state so it works on phone + desktop.
+ * Touch and mouse handlers both drive pressed state so the row behaves
+ * consistently across pointer types.
  */
 interface PressableRowProps {
   children: ReactNode

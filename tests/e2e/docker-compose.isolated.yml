@@ -1,0 +1,12 @@
+services:
+  seaweedfs-master:
+    volumes:
+      - type: bind
+        source: ${KUTUP_E2E_DATA_DIR:?Set KUTUP_E2E_DATA_DIR to a disposable directory}/seaweedfs-master
+        target: /data
+
+  seaweedfs-volume:
+    volumes:
+      - type: bind
+        source: ${KUTUP_E2E_DATA_DIR:?Set KUTUP_E2E_DATA_DIR to a disposable directory}/seaweedfs-volume
+        target: /data

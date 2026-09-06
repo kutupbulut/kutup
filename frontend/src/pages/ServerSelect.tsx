@@ -17,7 +17,7 @@ import { z } from 'zod'
 
 import { normalizeServerUrl, setServerUrl } from '@/lib/serverConfig'
 import { invalidateApiBase } from '@/lib/apiBase'
-import { KutupLogo } from '@/components/KutupLogo'
+import { AuthLayout } from '@/components/auth/AuthLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -29,7 +29,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
 const schema = z.object({
   url: z.string().min(1),
@@ -100,23 +100,17 @@ export default function ServerSelect() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <div className="flex items-center gap-2.5 justify-center mb-2">
-            <KutupLogo size={34} />
-            <span className="text-3xl font-bold text-primary tracking-tight">
-              Kutup
-            </span>
-          </div>
-          <CardTitle className="text-center">
+    <AuthLayout contentWidth="compact">
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardHeader className="px-0 pt-0">
+          <h1 className="font-display text-3xl font-semibold tracking-[-0.035em]">
             {t('auth.serverSelect.title')}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground text-center mt-1">
+          </h1>
+          <p className="mt-2 text-sm leading-5 text-muted-foreground">
             {t('auth.serverSelect.subtitle')}
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 pb-0">
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
@@ -166,6 +160,6 @@ export default function ServerSelect() {
           </Form>
         </CardContent>
       </Card>
-    </div>
+    </AuthLayout>
   )
 }

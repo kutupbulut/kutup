@@ -66,16 +66,20 @@ export function MobilePageHeader({
             <KutupLogo size={20} />
           </div>
         )}
-        <div className="flex-1 text-center text-[15px] font-semibold text-text-primary min-w-0 px-2 truncate">
-          {large ? '' : title}
-        </div>
+        {large ? (
+          <div className="min-w-0 flex-1 px-2" aria-hidden="true" />
+        ) : (
+          <h1 className="min-w-0 flex-1 truncate px-2 text-center text-[15px] font-semibold text-text-primary">
+            {title}
+          </h1>
+        )}
         <div className="flex items-center gap-0.5 pr-1.5">{right}</div>
       </div>
       {large && (
         <div className="pt-1 px-4.5 pb-3">
-          <div className="text-[28px] font-bold text-text-primary tracking-[-0.5px]">
+          <h1 className="text-[28px] font-bold text-text-primary tracking-[-0.5px]">
             {title}
-          </div>
+          </h1>
           {subtitle && (
             <div className="text-[13px] text-text-tertiary mt-0.5">{subtitle}</div>
           )}

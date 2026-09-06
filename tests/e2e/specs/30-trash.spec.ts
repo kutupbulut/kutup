@@ -12,15 +12,15 @@ import { signInOrBootstrap } from '../fixtures/auth'
 // the E2EE unwrap path of GET /api/trash.
 
 async function enterMyFiles(page: Page) {
-    const myFiles = page.locator('text=My Files').first()
-    if (await myFiles.count()) await myFiles.click().catch(() => {})
-    await page.waitForTimeout(1_000)
+    await goToSidebar(page, 'My Files')
 }
 
 /** Sidebar navigation — works for both My Files and Trash entries. */
-async function goToSidebar(page: Page, label: string) {
-    await page.locator(`nav button:has-text("${label}"), aside button:has-text("${label}"), button:has-text("${label}")`).first().click()
-    await page.waitForTimeout(1_000)
+async function goToSidebar(page: Page, label: 'My Files' | 'Trash') {
+    const destination = label === 'Trash' ? /\/drive\/trash(?:\?.*)?$/ : /\/drive(?:\?.*)?$/
+    const navigation = page.getByRole('navigation', { name: 'Primary navigation' })
+    await navigation.getByRole('link', { name: label, exact: true }).click()
+    await expect(page).toHaveURL(destination)
 }
 
 /** Create a note via New → Note with a chosen filename; closes the editor tab. */
@@ -111,21 +111,19 @@ test('folder: cascade delete → single trash entry → restore brings the file 
     await page.locator('[role=dialog] button[type=submit], [role=dialog] button:has-text("Create")').last().click()
     await page.waitForTimeout(1_000)
 
-    await page.locator(`text=${folderName}`).first().click()
-    await page.waitForTimeout(1_000)
+    await page.getByRole('button', { name: `Open folder ${folderName}` }).click()
+    await expect(page.getByRole('navigation', { name: 'Folder path' })).toContainText(folderName)
     await createNote(page, fileName)
     await expect(page.locator('tr', { hasText: fileName }).first()).toBeVisible()
 
     // Delete the folder from inside isn't the flow — go up and delete its tile.
-    await goToSidebar(page, 'My Files')
-    await enterMyFiles(page)
-    const tile = page.locator(`[role=button]:has-text("${folderName}"), div:has-text("${folderName}")`).filter({ has: page.locator('button[aria-haspopup="menu"]') }).last()
-    await tile.locator('button[aria-haspopup="menu"]').last().click()
-    await page.waitForTimeout(300)
-    await page.locator('[role=menuitem]:has-text("Move to Trash")').first().click()
-    await page.waitForTimeout(300)
-    await page.locator('[role=alertdialog] button:has-text("Move to Trash")').click()
-    await page.waitForTimeout(1_000)
+    await page.getByRole('navigation', { name: 'Folder path' })
+        .getByRole('button', { name: 'My Files', exact: true }).click()
+    await expect(page.getByRole('button', { name: `Open folder ${folderName}` })).toBeVisible()
+    await page.getByRole('button', { name: `Actions for folder ${folderName}` }).click()
+    await page.getByRole('menuitem', { name: 'Move to Trash', exact: true }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Move to Trash' }).click()
+    await expect(page.getByRole('button', { name: `Open folder ${folderName}` })).toHaveCount(0)
 
     // One folder entry in the trash; the file inside has NO separate entry.
     await goToSidebar(page, 'Trash')
@@ -138,7 +136,6 @@ test('folder: cascade delete → single trash entry → restore brings the file 
     await page.waitForTimeout(1_000)
     await goToSidebar(page, 'My Files')
     await enterMyFiles(page)
-    await page.locator(`text=${folderName}`).first().click()
-    await page.waitForTimeout(1_500)
+    await page.getByRole('button', { name: `Open folder ${folderName}` }).click()
     await expect(page.locator('tr', { hasText: fileName }).first()).toBeVisible()
 })

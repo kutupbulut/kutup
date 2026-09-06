@@ -3137,7 +3137,7 @@ impl HistoryEntry {
             conversation,
             peer: message.peer,
             direction: "outgoing",
-            sender_device_id: None,
+            sender_device_id: (message.sender_device_id != 0).then_some(message.sender_device_id),
             cursor: None,
             timestamp_ms: message.created_at,
             delivered: message.delivered,

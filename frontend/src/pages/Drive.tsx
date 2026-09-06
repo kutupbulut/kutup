@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { isTauri } from '@/lib/isTauri'
 import {
-  Download,
-  Trash2,
   FolderPlus,
   FileText as FileTextIcon,
+  SearchX,
   Upload as UploadIcon,
   RefreshCw,
+  Users,
 } from 'lucide-react'
 import { useAppSelector, useAppDispatch } from '@/store'
 import { selectMasterKey, selectPrivateKey, updateStorageUsed, updateStorageQuota, setColor } from '@/store/authSlice'
@@ -34,7 +34,6 @@ import { toast } from 'sonner'
 import { formatBytes } from '@/lib/format'
 import { downloadAsZip, FsaRequiredError } from '@/lib/zipDownload'
 
-import Sidebar from '@/components/layout/Sidebar'
 import TrashView from '@/components/drive/TrashView'
 import DriveBreadcrumb from '@/components/drive/DriveBreadcrumb'
 import DriveTopBar from '@/components/drive/DriveTopBar'
@@ -81,7 +80,13 @@ import type { Collection, DecryptedFile, UploadState } from '@/types/drive'
 
 interface FileMetadata { name: string; mimeType: string; size: number }
 
-export default function Drive() {
+export type DriveViewMode = 'myfiles' | 'shared' | 'trash'
+
+interface DriveProps {
+  initialViewMode?: DriveViewMode
+}
+
+export default function Drive({ initialViewMode = 'myfiles' }: DriveProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
@@ -89,8 +94,9 @@ export default function Drive() {
   const privateKey = useAppSelector(selectPrivateKey)
   const auth = useAppSelector((s) => s.auth)
   // Below `md:` we render the mobile shell (bottom-tab nav + design-driven
-  // file/folder views). Desktop keeps the existing Sidebar + DriveTopBar +
-  // ContextMenu-wrapped FileTable. Both branches share the data state below.
+  // file/folder views). Desktop inherits the authenticated app sidebar and
+  // renders DriveTopBar + the ContextMenu-wrapped FileTable here. Both
+  // branches share the data state below.
   const isMobile = useIsMobile()
 
   const [collections, setCollections] = useState<Collection[]>([])
@@ -98,7 +104,7 @@ export default function Drive() {
   const [navigationStack, setNavigationStack] = useState<Collection[]>([])
   const [files, setFiles] = useState<DecryptedFile[]>([])
   const [myFilesCollection, setMyFilesCollection] = useState<Collection | null>(null)
-  const [viewMode, setViewMode] = useState<'myfiles' | 'shared' | 'trash'>('myfiles')
+  const [viewMode, setViewMode] = useState<DriveViewMode>(initialViewMode)
   const [uploadState, setUploadState] = useState<UploadState | null>(null)
   const [isDragging, setIsDragging] = useState(false)
 
@@ -135,10 +141,10 @@ export default function Drive() {
   }, [masterKey])
 
   useEffect(() => {
-    if (myFilesCollection && !currentFolder) {
+    if (viewMode === 'myfiles' && myFilesCollection && !currentFolder) {
       setCurrentFolder(myFilesCollection)
     }
-  }, [myFilesCollection])
+  }, [myFilesCollection, viewMode])
 
   useEffect(() => {
     if (currentFolder?.collectionKey) loadFiles(currentFolder)
@@ -333,6 +339,7 @@ export default function Drive() {
       setCurrentFolder(myFilesCollection)
       setFiles([])
     }
+    navigate('/drive')
   }
 
   function goToShared() {
@@ -343,6 +350,7 @@ export default function Drive() {
       setCurrentFolder(null)
       setFiles([])
     }
+    navigate('/drive/shared')
   }
 
   function goToTrash() {
@@ -353,6 +361,7 @@ export default function Drive() {
       setCurrentFolder(null)
       setFiles([])
     }
+    navigate('/drive/trash')
   }
 
   function navigateTo(index: number) {
@@ -1067,374 +1076,17 @@ export default function Drive() {
     },
   })
 
-  // Mobile branch — bottom-tab navigation shell, design-driven Files page.
-  // Returns early so the desktop layout below never mounts on phones (avoids
-  // mounting the desktop Sidebar / drag-and-drop main / FileTable, all of
-  // which assume a wide viewport).
-  //
-  // PR 2 wires the actions that DON'T require dialogs (upload-files,
-  // upload-folder, new-whiteboard); New folder / New note / item-actions
-  // (rename / share / details) get wired in PR 3 once the design's mobile
-  // sheet variants for those flows are in place.
-  if (isMobile) {
-    // "At root" = we're at the user's My Files collection AND there are no
-    // sub-folders on the breadcrumb stack. Drives the large-title pattern +
-    // suppresses the Back button. kutup's root is a non-null Collection
-    // (unlike the design prototype's `null` root) so this can't be inferred
-    // from `currentFolder == null`.
-    const isAtRoot =
-      navigationStack.length === 0 &&
-      (!currentFolder ||
-        (myFilesCollection != null && currentFolder.id === myFilesCollection.id))
+  const fileInputs = (
+    <>
+      <input ref={fileInputRef} type="file" multiple className="hidden" />
+      {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+      {/* @ts-expect-error — webkitdirectory isn't in React's typing yet */}
+      <input ref={folderInputRef} type="file" webkitdirectory="" directory="" multiple className="hidden" />
+    </>
+  )
 
-    return (
-      <MobileShell>
-        <MobileFilesPage
-          folders={visibleFolders}
-          files={visibleFiles}
-          currentFolder={currentFolder}
-          isAtRoot={isAtRoot}
-          usedBytes={auth.storageUsedBytes}
-          quotaBytes={auth.storageQuotaBytes}
-          onOpenFolder={enterFolder}
-          onOpenFile={handleFileClick}
-          onBack={() => {
-            if (navigationStack.length > 0) {
-              const next = navigationStack[navigationStack.length - 1]
-              setNavigationStack((prev) => prev.slice(0, -1))
-              setCurrentFolder(next)
-              setFiles([])
-            } else {
-              goHome()
-            }
-          }}
-          onItemMore={setDetailItem}
-          onUploadFiles={() => triggerUpload()}
-          onUploadFolder={() => triggerFolderUpload()}
-          onNewFolder={() => {
-            // PR 3: mobile NewFolder sheet. For now show a stub toast so the
-            // FAB sheet item isn't silently dead.
-            toast.message(t('mobile.sheet.add.newFolder', 'New folder'), {
-              description: t('mobile.actionUnavailable', 'Tap a folder on desktop to create one — mobile flow coming soon.'),
-            })
-          }}
-          onNewNote={() => {
-            toast.message(t('mobile.sheet.add.newNote', 'New note'), {
-              description: t('mobile.actionUnavailable', 'Tap a folder on desktop to create one — mobile flow coming soon.'),
-            })
-          }}
-          onNewWhiteboard={() => handleCreateOffice('excalidraw')}
-        />
-
-        {/* Item-actions sheet — opens when the user taps the ⋯ button on a
-            folder tile or file row. Wires the actions that don't require a
-            dialog (Open, Color, Download) directly; the rest surface stub
-            toasts until a follow-up PR moves RenameDialog / ShareDialog /
-            delete-confirm AlertDialogs out of the desktop branch so mobile
-            can share them. */}
-        <MobileItemSheet
-          item={detailItem}
-          onClose={() => setDetailItem(null)}
-          onOpen={(it) => {
-            if ('nameEnvelope' in it) enterFolder(it)
-            else handleFileClick(it)
-          }}
-          onChangeColor={(folder, color) => handleColorFolder(folder, color)}
-          onDownload={(file) => handleDownload(file)}
-          onRename={() =>
-            toast.message(t('mobile.item.rename', 'Rename'), {
-              description: t('mobile.actionUnavailable', 'Tap a folder on desktop to create one — mobile flow coming soon.'),
-            })
-          }
-          onShare={() =>
-            toast.message(t('mobile.item.share', 'Share'), {
-              description: t('mobile.actionUnavailable', 'Tap a folder on desktop to create one — mobile flow coming soon.'),
-            })
-          }
-          onDelete={() =>
-            toast.message(t('mobile.item.trash', 'Move to Trash'), {
-              description: t('mobile.actionUnavailable', 'Tap a folder on desktop to create one — mobile flow coming soon.'),
-            })
-          }
-        />
-      </MobileShell>
-    )
-  }
-
-  return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar
-        viewMode={viewMode}
-        sharedCount={sharedCollections.length}
-        onGoHome={goHome}
-        onGoShared={goToShared}
-        onGoTrash={goToTrash}
-      />
-
-      <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <DriveTopBar
-          ref={searchInputRef}
-          searchValue={searchQuery}
-          onSearchChange={setSearchQuery}
-          canUpload={canUploadToCurrentFolder()}
-          onShowHelp={() => setShortcutsOpen(true)}
-          onUpload={() => triggerUpload()}
-          onUploadFolder={() => triggerFolderUpload()}
-          onNewFolder={() => setNewFolderOpen(true)}
-          onNewNote={() => setNewNoteOpen(true)}
-          onNewOffice={(kind) => handleCreateOffice(kind)}
-          onAddRemote={() => setAddRemoteOpen(true)}
-          newMenuOpen={newMenuOpen}
-          onNewMenuOpenChange={setNewMenuOpen}
-        />
-
-        <ContextMenu>
-        <ContextMenuTrigger asChild>
-        <main
-          className="flex-1 p-8 overflow-auto relative"
-          onDragOver={(e) => { e.preventDefault(); if (currentFolder?.collectionKey) setIsDragging(true) }}
-          onDragEnter={(e) => { e.preventDefault(); if (currentFolder?.collectionKey) setIsDragging(true) }}
-          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false) }}
-          onDrop={(e) => {
-            e.preventDefault()
-            setIsDragging(false)
-            if (!currentFolder?.collectionKey || !canUploadToCurrentFolder()) return
-            const items = e.dataTransfer.items
-            const hasDirEntry = (() => {
-              for (let i = 0; i < items.length; i++) {
-                const it = items[i] as DataTransferItem & {
-                  webkitGetAsEntry?: () => FileSystemEntry | null
-                }
-                const entry = it.webkitGetAsEntry?.()
-                if (entry?.isDirectory) return true
-              }
-              return false
-            })()
-            if (hasDirEntry) {
-              void (async () => {
-                const entries = await dataTransferToFolderEntries(items)
-                if (entries.length) await handleFolderUploadEntries(entries)
-              })()
-              return
-            }
-            const dropped = Array.from(e.dataTransfer.files).filter((f) => f.size > 0)
-            if (dropped.length) uploadFiles(dropped)
-          }}
-        >
-          {/* Drag overlay */}
-          {isDragging && currentFolder && (
-            <div className="fixed inset-0 z-50 bg-primary/15 border-2 border-dashed border-primary pointer-events-none flex items-center justify-center">
-              <p className="text-2xl font-semibold text-primary">
-                {t('drive.dropToUpload', { name: currentFolder.decryptedName })}
-              </p>
-            </div>
-          )}
-
-          <input ref={fileInputRef} type="file" multiple className="hidden" />
-          {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-          {/* @ts-expect-error — webkitdirectory isn't in React's typing yet */}
-          <input ref={folderInputRef} type="file" webkitdirectory="" directory="" multiple className="hidden" />
-
-          {viewMode === 'trash' ? (
-            // Trash view lives inside the same Sidebar + DriveTopBar chrome
-            // as My Files / Shared (per user request: "should be like My
-            // Files tab and Shared with me tab just change the main board").
-            // Restores touch collections/files that Drive holds in local
-            // state, so TrashView reloads them through onChanged.
-            <TrashView
-              onChanged={() => {
-                loadCollections()
-                if (currentFolder) loadFiles(currentFolder)
-              }}
-            />
-          ) : (<>
-
-          <DriveBreadcrumb
-          viewMode={viewMode}
-          currentFolder={currentFolder}
-          myFilesCollection={myFilesCollection}
-          navigationStack={navigationStack}
-          onNavigateTo={navigateTo}
-          onGoHome={goHome}
-          onGoShared={goToShared}
-        />
-
-        {/* Per-share upload quota bar */}
-        {currentFolder?.uploadQuotaBytes != null && currentFolder.uploadQuotaBytes > 0 && (
-          <div className="mb-4 p-3 bg-card border border-border rounded-lg">
-            <div className="flex justify-between text-xs text-muted-foreground mb-2">
-              <span>{t('drive.uploadQuota')}</span>
-              <span>
-                {formatBytes(files.reduce((acc, f) => acc + (f.decryptedSize ?? 0), 0))}
-                {' / '}
-                {formatBytes(currentFolder.uploadQuotaBytes)}
-              </span>
-            </div>
-            <Progress
-              value={Math.min(
-                (files.reduce((acc, f) => acc + (f.decryptedSize ?? 0), 0) / currentFolder.uploadQuotaBytes) * 100,
-                100,
-              )}
-              className="h-1.5"
-            />
-          </div>
-        )}
-
-        {/* Selection toolbar — always reserves space to avoid layout shift */}
-        <div className="h-10 mb-4 flex items-center">
-          {totalSelected > 0 && (
-            <div className="flex items-center gap-3 w-full px-3 py-1.5 bg-primary/10 border border-primary/30 rounded-lg">
-              <span className="text-sm font-medium">
-                {t('drive.selected', { count: totalSelected })}
-              </span>
-              {selectedFileIds.size > 0 && (
-                <Button size="sm" variant="outline" onClick={handleBatchDownload}>
-                  <Download className="h-4 w-4 mr-1.5" />
-                  {t('drive.downloadFiles', { count: selectedFileIds.size })}
-                </Button>
-              )}
-              {selectedFolderIds.size > 0 && (
-                <Button size="sm" variant="outline" onClick={handleBatchFolderDownload}>
-                  <Download className="h-4 w-4 mr-1.5" />
-                  {t('drive.downloadFolders', { count: selectedFolderIds.size })}
-                </Button>
-              )}
-              <Button size="sm" variant="destructive" onClick={() => setBatchDeleteOpen(true)}>
-                <Trash2 className="h-4 w-4 mr-1.5" />
-                {t('mobile.item.trash', 'Move to Trash')}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={clearSelection} className="ml-auto">
-                {t('drive.clear')}
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Folders */}
-        <CollectionGrid
-          collections={visibleFolders}
-          currentUserId={auth.userId}
-          selectedIds={selectedFolderIds}
-          onEnter={enterFolder}
-          onDetails={setDetailItem}
-          onToggleSelect={toggleFolderSelect}
-          onRename={(col) => setRenameTarget({ kind: "collection", collection: col })}
-          onColor={handleColorFolder}
-          onShare={(col) => setShareTarget(col)}
-          onPublicLink={handleCreatePublicLink}
-          onDelete={(col) => setDeleteFolder(col)}
-          onRevoke={handleRevokeRemoteShare}
-          onUploadTo={(col) => triggerUpload(col)}
-          onDrop={(e, col) => {
-            const dropped = Array.from(e.dataTransfer.files).filter((f) => f.size > 0)
-            if (dropped.length && col.collectionKey) uploadFiles(dropped, col)
-          }}
-        />
-
-        {/* Shared empty state */}
-        {viewMode === 'shared' && !currentFolder && sharedCollections.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-            <p>{t('drive.noSharedFolders')}</p>
-          </div>
-        )}
-
-        {/* Files */}
-        {currentFolder && (
-          <>
-            {visibleFiles.length === 0 ? (
-              searchQuery.trim() ? (
-                <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-sm">
-                  <p>No matches for &ldquo;{searchQuery}&rdquo; in this folder.</p>
-                </div>
-              ) : (
-                <EmptyState
-                  canUpload={canUploadToCurrentFolder()}
-                  onClick={() => canUploadToCurrentFolder() && triggerUpload()}
-                />
-              )
-            ) : (
-              <FileTable
-                files={visibleFiles}
-                canDelete={canDeleteFile()}
-                selectedIds={selectedFileIds}
-                onSelect={handleFileClick}
-                onToggleSelect={toggleFileSelect}
-                onToggleSelectAll={toggleAllFiles}
-                onDownload={handleDownload}
-                onDelete={(file) => setDeleteFile(file)}
-                onDetails={setDetailItem}
-                onRename={(file) => setRenameTarget({ kind: 'file', file })}
-              />
-            )}
-          </>
-        )}
-          </>)}
-        </main>
-        </ContextMenuTrigger>
-        <ContextMenuContent className="w-52">
-          <ContextMenuItem
-            onSelect={() => setNewFolderOpen(true)}
-            disabled={!canUploadToCurrentFolder()}
-          >
-            <FolderPlus className="h-4 w-4 mr-2" />
-            New folder
-          </ContextMenuItem>
-          <ContextMenuItem
-            onSelect={() => setNewNoteOpen(true)}
-            disabled={!canUploadToCurrentFolder()}
-          >
-            <FileTextIcon className="h-4 w-4 mr-2" />
-            New note (.md)
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem
-            onSelect={() => triggerUpload()}
-            disabled={!canUploadToCurrentFolder()}
-          >
-            <UploadIcon className="h-4 w-4 mr-2" />
-            Upload files
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem
-            onSelect={() => {
-              loadCollections()
-              if (currentFolder) loadFiles(currentFolder)
-            }}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </ContextMenuItem>
-        </ContextMenuContent>
-        </ContextMenu>
-      </div>
-
-      {/* Upload progress */}
-      {uploadState && <UploadPanel state={uploadState} />}
-
-      {/* Details panel */}
-      <DetailsPanel
-        item={detailItem}
-        canDelete={
-          'ownerUserId' in (detailItem ?? {})
-            ? true
-            : canDeleteFile()
-        }
-        onClose={() => setDetailItem(null)}
-        onDownload={handleDownload}
-        onDownloadFolder={handleFolderDownload}
-        onDelete={(item) => {
-          if ('ownerUserId' in item) setDeleteFolder(item as Collection)
-          else setDeleteFile(item as DecryptedFile)
-        }}
-        onRename={(col) => setRenameTarget({ kind: "collection", collection: col })}
-        onRenameFile={(file) => setRenameTarget({ kind: 'file', file })}
-        onColor={handleColorFolder}
-        onShare={(col) => setShareTarget(col)}
-        onPublicLink={handleCreatePublicLink}
-        onEnter={enterFolder}
-      />
-
-      {/* Dialogs */}
+  const driveDialogs = (
+    <>
       <NewFolderDialog
         open={newFolderOpen}
         onOpenChange={setNewFolderOpen}
@@ -1482,18 +1134,22 @@ export default function Drive() {
         onConfirm={handleAddRemoteShare}
       />
 
-      {/* Delete file confirmation */}
       <AlertDialog open={deleteFile !== null} onOpenChange={() => setDeleteFile(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('drive.deleteFile.title', { name: deleteFile?.decryptedName })}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t('drive.deleteFile.title', { name: deleteFile?.decryptedName })}
+            </AlertDialogTitle>
             <AlertDialogDescription>{t('drive.deleteFile.desc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { if (deleteFile) handleDeleteFile(deleteFile); setDeleteFile(null) }}
+              onClick={() => {
+                if (deleteFile) handleDeleteFile(deleteFile)
+                setDeleteFile(null)
+              }}
             >
               {t('mobile.item.trash', 'Move to Trash')}
             </AlertDialogAction>
@@ -1501,18 +1157,22 @@ export default function Drive() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete folder confirmation */}
       <AlertDialog open={deleteFolder !== null} onOpenChange={() => setDeleteFolder(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('drive.deleteFolder.title', { name: deleteFolder?.decryptedName })}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t('drive.deleteFolder.title', { name: deleteFolder?.decryptedName })}
+            </AlertDialogTitle>
             <AlertDialogDescription>{t('drive.deleteFolder.desc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { if (deleteFolder) handleDeleteFolder(deleteFolder); setDeleteFolder(null) }}
+              onClick={() => {
+                if (deleteFolder) handleDeleteFolder(deleteFolder)
+                setDeleteFolder(null)
+              }}
             >
               {t('mobile.item.trash', 'Move to Trash')}
             </AlertDialogAction>
@@ -1520,7 +1180,6 @@ export default function Drive() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Batch delete confirmation */}
       <AlertDialog open={batchDeleteOpen} onOpenChange={setBatchDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1543,6 +1202,343 @@ export default function Drive() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </>
+  )
+
+  // Phones use the compact Files presentation while retaining the same data,
+  // upload, editor, and dialog flows as the desktop workspace.
+  if (isMobile) {
+    // Root depends on the active Files view: My files has a concrete root
+    // collection, while Shared with me uses null until a shared folder opens.
+    const isAtRoot = viewMode === 'shared'
+      ? navigationStack.length === 0 && currentFolder === null
+      : navigationStack.length === 0 &&
+        (!currentFolder ||
+          (myFilesCollection != null && currentFolder.id === myFilesCollection.id))
+
+    return (
+      <MobileShell>
+        {fileInputs}
+        <MobileFilesPage
+          folders={visibleFolders}
+          files={visibleFiles}
+          currentFolder={currentFolder}
+          isAtRoot={isAtRoot}
+          viewMode={viewMode === 'shared' ? 'shared' : 'myfiles'}
+          usedBytes={auth.storageUsedBytes}
+          quotaBytes={auth.storageQuotaBytes}
+          canCreate={canUploadToCurrentFolder()}
+          onOpenFolder={enterFolder}
+          onOpenFile={handleFileClick}
+          onBack={() => {
+            if (navigationStack.length > 0) {
+              const next = navigationStack[navigationStack.length - 1]
+              setNavigationStack((prev) => prev.slice(0, -1))
+              setCurrentFolder(next)
+              setFiles([])
+            } else {
+              goHome()
+            }
+          }}
+          onViewModeChange={(nextView) => {
+            if (nextView === 'shared') goToShared()
+            else goHome()
+          }}
+          onOpenTrash={goToTrash}
+          onItemMore={setDetailItem}
+          onUploadFiles={() => triggerUpload()}
+          onUploadFolder={() => triggerFolderUpload()}
+          onNewFolder={() => setNewFolderOpen(true)}
+          onNewNote={() => setNewNoteOpen(true)}
+          onNewWhiteboard={() => handleCreateOffice('excalidraw')}
+          onPasteEncryptedLink={() => setAddRemoteOpen(true)}
+        />
+
+        <MobileItemSheet
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+          onOpen={(it) => {
+            if ('nameEnvelope' in it) enterFolder(it)
+            else handleFileClick(it)
+          }}
+          onChangeColor={(folder, color) => handleColorFolder(folder, color)}
+          onDownload={(file) => handleDownload(file)}
+          onDownloadFolder={handleFolderDownload}
+          onRename={(item) => {
+            if ('ownerUserId' in item) {
+              setRenameTarget({ kind: 'collection', collection: item })
+            } else {
+              setRenameTarget({ kind: 'file', file: item })
+            }
+          }}
+          onShare={(folder) => setShareTarget(folder)}
+          onDelete={(item) => {
+            if ('ownerUserId' in item) {
+              if (item.isRemote) void handleRevokeRemoteShare(item)
+              else setDeleteFolder(item)
+            } else {
+              setDeleteFile(item)
+            }
+          }}
+        />
+        {uploadState && <UploadPanel state={uploadState} />}
+        {driveDialogs}
+      </MobileShell>
+    )
+  }
+
+  return (
+    <div className="relative flex h-full min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        <DriveTopBar
+          ref={searchInputRef}
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          canUpload={canUploadToCurrentFolder()}
+          onShowHelp={() => setShortcutsOpen(true)}
+          onUpload={() => triggerUpload()}
+          onUploadFolder={() => triggerFolderUpload()}
+          onNewFolder={() => setNewFolderOpen(true)}
+          onNewNote={() => setNewNoteOpen(true)}
+          onNewOffice={(kind) => handleCreateOffice(kind)}
+          onAddRemote={() => setAddRemoteOpen(true)}
+          newMenuOpen={newMenuOpen}
+          onNewMenuOpenChange={setNewMenuOpen}
+          selection={totalSelected > 0 ? {
+            totalCount: totalSelected,
+            fileCount: selectedFileIds.size,
+            folderCount: selectedFolderIds.size,
+            onDownloadFiles: handleBatchDownload,
+            onDownloadFolders: handleBatchFolderDownload,
+            onDelete: () => setBatchDeleteOpen(true),
+            onClear: clearSelection,
+          } : undefined}
+        />
+
+        <ContextMenu>
+        <ContextMenuTrigger asChild>
+        <main
+          className="flex-1 p-8 overflow-auto relative"
+          onDragOver={(e) => { e.preventDefault(); if (currentFolder?.collectionKey) setIsDragging(true) }}
+          onDragEnter={(e) => { e.preventDefault(); if (currentFolder?.collectionKey) setIsDragging(true) }}
+          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false) }}
+          onDrop={(e) => {
+            e.preventDefault()
+            setIsDragging(false)
+            if (!currentFolder?.collectionKey || !canUploadToCurrentFolder()) return
+            const items = e.dataTransfer.items
+            const hasDirEntry = (() => {
+              for (let i = 0; i < items.length; i++) {
+                const it = items[i] as DataTransferItem & {
+                  webkitGetAsEntry?: () => FileSystemEntry | null
+                }
+                const entry = it.webkitGetAsEntry?.()
+                if (entry?.isDirectory) return true
+              }
+              return false
+            })()
+            if (hasDirEntry) {
+              void (async () => {
+                const entries = await dataTransferToFolderEntries(items)
+                if (entries.length) await handleFolderUploadEntries(entries)
+              })()
+              return
+            }
+            const dropped = Array.from(e.dataTransfer.files).filter((f) => f.size > 0)
+            if (dropped.length) uploadFiles(dropped)
+          }}
+        >
+          {/* Drag overlay */}
+          {isDragging && currentFolder && (
+            <div className="fixed inset-0 z-50 bg-primary/15 border-2 border-dashed border-primary pointer-events-none flex items-center justify-center">
+              <p className="text-2xl font-semibold text-primary">
+                {t('drive.dropToUpload', { name: currentFolder.decryptedName })}
+              </p>
+            </div>
+          )}
+
+          {fileInputs}
+
+          {viewMode === 'trash' ? (
+            // Trash view lives inside the same app shell + DriveTopBar chrome
+            // as My Files / Shared (per user request: "should be like My
+            // Files tab and Shared with me tab just change the main board").
+            // Restores touch collections/files that Drive holds in local
+            // state, so TrashView reloads them through onChanged.
+            <TrashView
+              onChanged={() => {
+                loadCollections()
+                if (currentFolder) loadFiles(currentFolder)
+              }}
+            />
+          ) : (<>
+
+          <DriveBreadcrumb
+          viewMode={viewMode}
+          currentFolder={currentFolder}
+          myFilesCollection={myFilesCollection}
+          navigationStack={navigationStack}
+          onNavigateTo={navigateTo}
+          onGoHome={goHome}
+          onGoShared={goToShared}
+        />
+
+        {/* Per-share upload quota bar */}
+        {currentFolder?.uploadQuotaBytes != null && currentFolder.uploadQuotaBytes > 0 && (
+          <div className="mb-4 p-3 bg-card border border-border rounded-lg">
+            <div className="flex justify-between text-xs text-muted-foreground mb-2">
+              <span>{t('drive.uploadQuota')}</span>
+              <span>
+                {formatBytes(files.reduce((acc, f) => acc + (f.decryptedSize ?? 0), 0))}
+                {' / '}
+                {formatBytes(currentFolder.uploadQuotaBytes)}
+              </span>
+            </div>
+            <Progress
+              value={Math.min(
+                (files.reduce((acc, f) => acc + (f.decryptedSize ?? 0), 0) / currentFolder.uploadQuotaBytes) * 100,
+                100,
+              )}
+              className="h-1.5"
+            />
+          </div>
+        )}
+
+        {/* Folders */}
+        <CollectionGrid
+          collections={visibleFolders}
+          currentUserId={auth.userId}
+          selectedIds={selectedFolderIds}
+          onEnter={enterFolder}
+          onDetails={setDetailItem}
+          onToggleSelect={toggleFolderSelect}
+          onRename={(col) => setRenameTarget({ kind: "collection", collection: col })}
+          onColor={handleColorFolder}
+          onShare={(col) => setShareTarget(col)}
+          onPublicLink={handleCreatePublicLink}
+          onDelete={(col) => setDeleteFolder(col)}
+          onRevoke={handleRevokeRemoteShare}
+          onUploadTo={(col) => triggerUpload(col)}
+          onDrop={(e, col) => {
+            const dropped = Array.from(e.dataTransfer.files).filter((f) => f.size > 0)
+            if (dropped.length && col.collectionKey) uploadFiles(dropped, col)
+          }}
+        />
+
+        {/* Shared empty state */}
+        {viewMode === 'shared' && !currentFolder && sharedCollections.length === 0 && (
+          <section className="flex h-64 flex-col items-center justify-center px-6 text-center">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+              <Users className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <h2 className="text-sm font-semibold text-foreground">{t('drive.sharedEmptyTitle')}</h2>
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">{t('drive.noSharedFolders')}</p>
+          </section>
+        )}
+
+        {/* Files */}
+        {currentFolder && (
+          <>
+            {visibleFiles.length === 0 ? (
+              searchQuery.trim() ? (
+                <section className="flex h-48 flex-col items-center justify-center px-6 text-center">
+                  <SearchX className="mb-3 h-6 w-6 text-muted-foreground" aria-hidden="true" />
+                  <h2 className="text-sm font-semibold text-foreground">
+                    {t('drive.searchEmptyTitle')}
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {t('drive.searchEmptyDescription', { query: searchQuery })}
+                  </p>
+                </section>
+              ) : (
+                <EmptyState
+                  canUpload={canUploadToCurrentFolder()}
+                  onClick={() => canUploadToCurrentFolder() && triggerUpload()}
+                />
+              )
+            ) : (
+              <FileTable
+                files={visibleFiles}
+                canDelete={canDeleteFile()}
+                selectedIds={selectedFileIds}
+                onSelect={handleFileClick}
+                onToggleSelect={toggleFileSelect}
+                onToggleSelectAll={toggleAllFiles}
+                onDownload={handleDownload}
+                onDelete={(file) => setDeleteFile(file)}
+                onDetails={setDetailItem}
+                onRename={(file) => setRenameTarget({ kind: 'file', file })}
+              />
+            )}
+          </>
+        )}
+          </>)}
+        </main>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-52">
+          <ContextMenuItem
+            onSelect={() => setNewFolderOpen(true)}
+            disabled={!canUploadToCurrentFolder()}
+          >
+            <FolderPlus className="h-4 w-4 mr-2" />
+            {t('drive.newFolder')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            onSelect={() => setNewNoteOpen(true)}
+            disabled={!canUploadToCurrentFolder()}
+          >
+            <FileTextIcon className="h-4 w-4 mr-2" />
+            {t('newMenu.note')}
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onSelect={() => triggerUpload()}
+            disabled={!canUploadToCurrentFolder()}
+          >
+            <UploadIcon className="h-4 w-4 mr-2" />
+            {t('drive.uploadFiles')}
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onSelect={() => {
+              loadCollections()
+              if (currentFolder) loadFiles(currentFolder)
+            }}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            {t('common.refresh')}
+          </ContextMenuItem>
+        </ContextMenuContent>
+        </ContextMenu>
+      </div>
+
+      {/* Upload progress */}
+      {uploadState && <UploadPanel state={uploadState} />}
+
+      {/* Details panel */}
+      <DetailsPanel
+        item={detailItem}
+        canDelete={
+          'ownerUserId' in (detailItem ?? {})
+            ? true
+            : canDeleteFile()
+        }
+        onClose={() => setDetailItem(null)}
+        onDownload={handleDownload}
+        onDownloadFolder={handleFolderDownload}
+        onDelete={(item) => {
+          if ('ownerUserId' in item) setDeleteFolder(item as Collection)
+          else setDeleteFile(item as DecryptedFile)
+        }}
+        onRename={(col) => setRenameTarget({ kind: "collection", collection: col })}
+        onRenameFile={(file) => setRenameTarget({ kind: 'file', file })}
+        onColor={handleColorFolder}
+        onShare={(col) => setShareTarget(col)}
+        onPublicLink={handleCreatePublicLink}
+        onEnter={enterFolder}
+      />
+
+      {driveDialogs}
     </div>
   )
 }

@@ -29,7 +29,7 @@ FROM node:20-alpine AS builder
 # `corepack prepare pnpm@latest --activate` was hitting an npm-registry tag
 # lookup that fails inside this builder; npm-installing the exact version
 # bypasses corepack's signature/tag-lookup path entirely.
-RUN npm install -g pnpm@9.1.1
+RUN npm install -g pnpm@10.28.2
 
 WORKDIR /app
 COPY frontend/package.json frontend/pnpm-lock.yaml* ./

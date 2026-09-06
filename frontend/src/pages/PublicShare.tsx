@@ -1,9 +1,9 @@
 // Public share viewer — no auth required.
 // The linkKey lives ONLY in the URL #fragment (never sent to server).
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
-import { Download, Lock, Loader2, FileText } from 'lucide-react'
+import { Download, Lock, Loader2, FileText, ShieldCheck } from 'lucide-react'
 import api from '@/api/client'
 import {
   decryptStream,
@@ -14,18 +14,8 @@ import {
 import { KutupLogo } from '@/components/KutupLogo'
 import { formatBytes } from '@/lib/format'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
+import { ThemeSelector } from '@/components/theme/ThemeSelector'
 
 interface DecryptedFile {
   id: string
@@ -43,6 +33,43 @@ interface DecryptedFile {
 }
 
 type State = 'loading' | 'ready' | 'error' | 'expired'
+
+function PublicShareFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border-light bg-surface/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-2.5">
+            <KutupLogo size={26} />
+            <span className="font-display text-lg font-semibold tracking-[-0.02em]">Kutup</span>
+          </div>
+          <ThemeSelector compact />
+        </div>
+      </header>
+      {children}
+    </div>
+  )
+}
+
+function ShareStatus({ icon, title, description }: {
+  icon: ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <PublicShareFrame>
+      <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-lg items-center px-4 py-12">
+        <div className="w-full rounded-2xl border border-border-light bg-surface p-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-faint text-primary">
+            {icon}
+          </div>
+          <h1 className="font-display text-xl font-semibold tracking-[-0.02em]">{title}</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+        </div>
+      </main>
+    </PublicShareFrame>
+  )
+}
 
 export default function PublicShare() {
   const { token } = useParams<{ token: string }>()
@@ -138,107 +165,111 @@ export default function PublicShare() {
 
   if (state === 'loading') {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">{t('publicShare.decrypting')}</p>
-      </div>
+      <ShareStatus
+        icon={<Loader2 className="h-5 w-5 animate-spin" />}
+        title={t('publicShare.title')}
+        description={t('publicShare.decrypting')}
+      />
     )
   }
 
   if (state === 'expired') {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-sm text-center">
-          <CardHeader><CardTitle>{t('publicShare.expired.title')}</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">{t('publicShare.expired.desc')}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <ShareStatus
+        icon={<Lock className="h-5 w-5" />}
+        title={t('publicShare.expired.title')}
+        description={t('publicShare.expired.desc')}
+      />
     )
   }
 
   if (state === 'error') {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-sm text-center">
-          <CardHeader><CardTitle>{t('publicShare.error.title')}</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">{error}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <ShareStatus
+        icon={<Lock className="h-5 w-5" />}
+        title={t('publicShare.error.title')}
+        description={error}
+      />
     )
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-8">
-      <div className="flex items-center gap-3 mb-2">
-        <KutupLogo size={26} />
-        <span className="text-2xl font-bold text-primary tracking-tight">Kutup</span>
-      </div>
-      <Badge variant="outline" className="border-green-500/50 text-green-400 mb-6 flex items-center gap-1.5 w-fit">
-        <Lock className="h-3 w-3" />
-        {t('publicShare.e2e')}
-      </Badge>
+    <PublicShareFrame>
+      <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+        <div className="max-w-2xl">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-faint px-3 py-1.5 text-xs font-medium text-primary">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            {t('publicShare.e2e')}
+          </div>
+          <h1 className="font-display text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
+            {t('publicShare.title')}
+          </h1>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+            {t('publicShare.subtitle')}
+          </p>
+        </div>
 
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+        {error && (
+          <Alert variant="destructive" className="mt-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t('publicShare.name')}</TableHead>
-            <TableHead className="w-24">{t('publicShare.size')}</TableHead>
-            <TableHead className="w-32">{t('publicShare.date')}</TableHead>
-            <TableHead className="w-28" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+        <section
+          aria-label={t('publicShare.title')}
+          className="mt-8 overflow-hidden rounded-2xl border border-border-light bg-surface shadow-sm"
+        >
+          <div className="hidden grid-cols-[minmax(0,1fr)_7rem_8rem_7rem] gap-4 border-b border-border-light bg-surface-sunken/60 px-4 py-2.5 text-xs font-medium text-muted-foreground sm:grid">
+            <span>{t('publicShare.name')}</span>
+            <span>{t('publicShare.size')}</span>
+            <span>{t('publicShare.date')}</span>
+            <span className="sr-only">{t('publicShare.download')}</span>
+          </div>
           {files.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                {t('publicShare.noFiles')}
-              </TableCell>
-            </TableRow>
+            <div className="px-5 py-16 text-center text-sm text-muted-foreground">
+              {t('publicShare.noFiles')}
+            </div>
           ) : (
-            files.map((file) => (
-              <TableRow key={file.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                    {file.decryptedName}
+            <ul className="divide-y divide-border-light">
+              {files.map((file) => (
+                <li
+                  key={file.id}
+                  className="grid gap-3 px-4 py-3.5 sm:grid-cols-[minmax(0,1fr)_7rem_8rem_7rem] sm:items-center sm:gap-4"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-faint text-primary">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <span className="truncate text-sm font-medium">{file.decryptedName}</span>
                   </div>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {file.decryptedSize ? formatBytes(file.decryptedSize) : '—'}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {new Date(file.createdAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
+                  <div className="flex gap-2 text-xs text-muted-foreground sm:block sm:text-sm">
+                    <span className="sm:hidden">{t('publicShare.size')}:</span>
+                    {file.decryptedSize != null ? formatBytes(file.decryptedSize) : '—'}
+                  </div>
+                  <div className="flex gap-2 text-xs text-muted-foreground sm:block sm:text-sm">
+                    <span className="sm:hidden">{t('publicShare.date')}:</span>
+                    {new Date(file.createdAt).toLocaleDateString()}
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleDownload(file)}
                     disabled={downloading === file.id || !file._fileKey}
+                    className="w-full sm:w-auto"
                   >
                     {downloading === file.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
                     ) : (
-                      <Download className="h-3.5 w-3.5 mr-2" />
+                      <Download className="mr-2 h-3.5 w-3.5" />
                     )}
                     {t('publicShare.download')}
                   </Button>
-                </TableCell>
-              </TableRow>
-            ))
+                </li>
+              ))}
+            </ul>
           )}
-        </TableBody>
-      </Table>
-    </div>
+        </section>
+      </main>
+    </PublicShareFrame>
   )
 }

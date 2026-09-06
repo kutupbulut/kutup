@@ -6,8 +6,7 @@ import { cn } from '@/lib/utils'
  * SheetAction — row primitive for inside bottom sheets (item-details actions,
  * add-sheet actions, share-sheet actions).
  *
- * Structure ported from the design prototype: icon-circle (32×32) + label
- * (14px / 500) + optional sub-text (12px tertiary). Three semantic variants:
+ * Combines an icon, label, and optional supporting text. Three semantic variants:
  *
  *   - `default` — neutral. Icon tile uses `surface-sunken`.
  *   - `primary` — affirmative action (e.g. "Upload files", "Open"). Icon tile
